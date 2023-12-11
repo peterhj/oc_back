@@ -1,0 +1,32 @@
+[package]
+name = "oc_back"
+version = "0.1.0-devel"
+edition = "2018"
+authors = ["Peter Jin"]
+
+[profile.dev]
+opt-level = 0
+#opt-level = 1
+debug = true
+overflow-checks = true
+panic = "abort"
+#codegen-units = 1
+#incremental = false
+codegen-units = 256
+incremental = true
+lto = false
+
+[dependencies]
+getrandom = { path = "../getrandom" }
+http1 = { path = "../http1" }
+rustc_serialize = { path = "../rustc_serialize" }
+service_base = { path = "../service_base" }
+time = { path = "../time-0.1" }
+
+[[bin]]
+name = "oc_back_service"
+path = "tools/oc_back_service.rs"
+
+[[bin]]
+name = "gen_token"
+path = "tools/gen_token.rs"
