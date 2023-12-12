@@ -174,7 +174,7 @@ pub fn routes() -> Router {
     rep.into()
     */
   }));
-  /*let tokens0 = static_access_tokens();
+  let tokens0 = static_access_tokens();
   router.insert_get(("olympiadchat", "{token:base64}", "{asset}"), Box::new(move |_, args, _| {
     println!("DEBUG:  oc_back: route: /olympiadchat/{{token}}/{{asset}}");
     let token = args.get("token")?.as_base64()?;
@@ -207,7 +207,7 @@ pub fn routes() -> Router {
     let mut rep = HttpResponse::ok();
     rep.set_payload_str_with_mime(data, mime);
     rep.into()
-  }));*/
+  }));
   /*router.insert_get(("olympiadchat", "{token:base64}", "api", "{endpoint}"), Box::new(move |_, args, _| {
     let token = args.get("token")?.as_base64()?;
     /*let ident = {
