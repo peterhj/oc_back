@@ -133,7 +133,6 @@ pub fn static_access_tokens() -> Vec<((), String, Box<[u8]>)> {
 }
 
 pub fn routes() -> Router {
-  let tokens0 = static_access_tokens();
   let mut router = Router::new();
   router.insert_get((), Box::new(move |_, _, _| {
     let mut rep = HttpResponse::ok();
@@ -145,6 +144,7 @@ pub fn routes() -> Router {
     rep.set_payload_str_with_mime("It&rsquo;s about time.\n", HttpMime::TextHtml);
     rep.into()
   }));
+  let tokens0 = static_access_tokens();
   router.insert_get(("olympiadchat", "{token:base64}"), Box::new(move |_, args, _| {
     let token = args.get("token")?.as_base64()?;
     let ident = {
@@ -168,6 +168,39 @@ pub fn routes() -> Router {
     rep.set_payload_str_with_mime(rendered, HttpMime::TextHtml);
     rep.into()
     */
+  }));
+  let tokens0 = static_access_tokens();
+  router.insert_get(("olympiadchat", "{token:base64}", "{asset}"), Box::new(move |_, args, _| {
+    let token = args.get("token")?.as_base64()?;
+    let ident = {
+      let mut mat_ident = None;
+      for &(_, ref ident, ref token0) in tokens0.iter() {
+        if constant_time_eq(token0, token) {
+          mat_ident = Some(ident.clone());
+          break;
+        }
+      }
+      mat_ident?
+    };
+    let asset = args.get("asset")?.as_str()?;
+    let (data, mime) = match asset {
+      "tachyons.min.css" => {
+        (crate::static_asset::TACHYONS_MIN_CSS, HttpMime::TextCss)
+      }
+      "katex.min.css" => {
+        (crate::static_asset::KATEX_MIN_CSS, HttpMime::TextCss)
+      }
+      "katex.min.js" => {
+        (crate::static_asset::KATEX_MIN_JS, HttpMime::TextJavascript)
+      }
+      "auto-render.min.js" => {
+        (crate::static_asset::AUTO_RENDER_MIN_JS, HttpMime::TextJavascript)
+      }
+      _ => return None
+    };
+    let mut rep = HttpResponse::ok();
+    rep.set_payload_str_with_mime(data, mime);
+    rep.into()
   }));
   router.insert_get(("olympiadchat", "{token:base64}", "api", "{endpoint}"), Box::new(move |_, args, _| {
     let token = args.get("token")?.as_base64()?;
