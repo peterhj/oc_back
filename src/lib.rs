@@ -98,6 +98,8 @@ pub fn service_main() -> () {
   protect(chroot_dir, 297, 297).unwrap();
   let pool = SpawnPool::new(bind);
   pool.replying({
+    // FIXME FIXME: pre and post functions.
+    //println!("INFO:   gateway: connected on {}:{}", host, port);
     // TODO TODO
     let router = router.clone();
     Arc::new(move |query| {
@@ -135,17 +137,20 @@ pub fn static_access_tokens() -> Vec<((), String, Box<[u8]>)> {
 pub fn routes() -> Router {
   let mut router = Router::new();
   router.insert_get((), Box::new(move |_, _, _| {
+    println!("DEBUG:  oc_back: route: /");
     let mut rep = HttpResponse::ok();
     rep.set_payload_str_with_mime("Hello world!\n", HttpMime::TextHtml);
     rep.into()
   }));
   router.insert_get("about", Box::new(move |_, _, _| {
+    println!("DEBUG:  oc_back: route: /about");
     let mut rep = HttpResponse::ok();
     rep.set_payload_str_with_mime("It&rsquo;s about time.\n", HttpMime::TextHtml);
     rep.into()
   }));
   let tokens0 = static_access_tokens();
   router.insert_get(("olympiadchat", "{token:base64}"), Box::new(move |_, args, _| {
+    println!("DEBUG:  oc_back: route: /olympiadchat/{{token}}");
     let token = args.get("token")?.as_base64()?;
     let ident = {
       let mut mat_ident = None;
@@ -169,8 +174,9 @@ pub fn routes() -> Router {
     rep.into()
     */
   }));
-  let tokens0 = static_access_tokens();
+  /*let tokens0 = static_access_tokens();
   router.insert_get(("olympiadchat", "{token:base64}", "{asset}"), Box::new(move |_, args, _| {
+    println!("DEBUG:  oc_back: route: /olympiadchat/{{token}}/{{asset}}");
     let token = args.get("token")?.as_base64()?;
     let ident = {
       let mut mat_ident = None;
@@ -191,18 +197,18 @@ pub fn routes() -> Router {
         (crate::static_asset::KATEX_MIN_CSS, HttpMime::TextCss)
       }
       "katex.min.js" => {
-        (crate::static_asset::KATEX_MIN_JS, HttpMime::TextJavascript)
+        (crate::static_asset::KATEX_MIN_JS, HttpMime::ApplicationJavascript)
       }
       "auto-render.min.js" => {
-        (crate::static_asset::AUTO_RENDER_MIN_JS, HttpMime::TextJavascript)
+        (crate::static_asset::AUTO_RENDER_MIN_JS, HttpMime::ApplicationJavascript)
       }
       _ => return None
     };
     let mut rep = HttpResponse::ok();
     rep.set_payload_str_with_mime(data, mime);
     rep.into()
-  }));
-  router.insert_get(("olympiadchat", "{token:base64}", "api", "{endpoint}"), Box::new(move |_, args, _| {
+  }));*/
+  /*router.insert_get(("olympiadchat", "{token:base64}", "api", "{endpoint}"), Box::new(move |_, args, _| {
     let token = args.get("token")?.as_base64()?;
     /*let ident = {
       let mut mat_ident = None;
@@ -216,7 +222,7 @@ pub fn routes() -> Router {
     };*/
     let endpoint = args.get("endpoint")?.as_str()?;
     unimplemented!();
-  }));
+  }));*/
   // TODO TODO
   router
 }
