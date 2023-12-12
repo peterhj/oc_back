@@ -206,6 +206,9 @@ pub fn routes() -> Router {
       "auto-render.min.js" => {
         (crate::static_asset::AUTO_RENDER_MIN_JS, Mime::ApplicationJavascript)
       }
+      "chat.js" => {
+        (crate::static_asset::CHAT_JS, Mime::ApplicationJavascript)
+      }
       _ => return None
     };
     let mut rep = HttpResponse::ok();

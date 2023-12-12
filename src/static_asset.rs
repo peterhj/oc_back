@@ -16,3 +16,5 @@ pub const AUTO_RENDER_MIN_JS: &'static str
     = include_str!("../../oc_front/auto-render.min.js");
 //pub const AUTO_RENDER_MIN_JS_GZ: &'static [u8]
 //    = include_bytes!("../../oc_front/auto-render.min.js.gz");
+pub const CHAT_JS: &'static str
+    = include_str!("../../oc_front/chat.js");
