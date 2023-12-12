@@ -162,6 +162,7 @@ pub fn routes() -> Router {
       }
       mat_ident?
     };
+    println!("DEBUG:  oc_back: route:   ident={:?}", ident);
     let html = crate::static_asset::CHAT_HTML;
     let mut rep = HttpResponse::ok();
     rep.set_payload_str_with_mime(html, HttpMime::TextHtml);
@@ -188,7 +189,9 @@ pub fn routes() -> Router {
       }
       mat_ident?
     };
+    println!("DEBUG:  oc_back: route:   ident={:?}", ident);
     let asset = args.get("asset")?.as_str()?;
+    println!("DEBUG:  oc_back: route:   asset={:?}", asset);
     let (data, mime) = match asset {
       "tachyons.min.css" => {
         (crate::static_asset::TACHYONS_MIN_CSS, HttpMime::TextCss)
