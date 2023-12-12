@@ -139,13 +139,13 @@ pub fn routes() -> Router {
   router.insert_get((), Box::new(move |_, _, _| {
     println!("DEBUG:  oc_back: route: /");
     let mut rep = HttpResponse::ok();
-    rep.set_payload_str_with_mime("Hello world!\n", HttpMime::TextHtml);
+    rep.set_payload_str_with_mime("Hello world!\n", Mime::TextHtml);
     rep.into()
   }));
   router.insert_get("about", Box::new(move |_, _, _| {
     println!("DEBUG:  oc_back: route: /about");
     let mut rep = HttpResponse::ok();
-    rep.set_payload_str_with_mime("It&rsquo;s about time.\n", HttpMime::TextHtml);
+    rep.set_payload_str_with_mime("It&rsquo;s about time.\n", Mime::TextHtml);
     rep.into()
   }));
   let tokens0 = static_access_tokens();
@@ -163,15 +163,16 @@ pub fn routes() -> Router {
       mat_ident?
     };
     println!("DEBUG:  oc_back: route:   ident={:?}", ident);
-    let html = crate::static_asset::CHAT_HTML;
+    let template = crate::static_asset::CHAT_HTML;
+    let html = template.replace("{{host}}", &format!("https://zanodu.xyz/olympiadchat/{}", base64::URL_SAFE.encode(&token)));
     let mut rep = HttpResponse::ok();
-    rep.set_payload_str_with_mime(html, HttpMime::TextHtml);
+    rep.set_payload_str_with_mime(html, Mime::TextHtml);
     rep.into()
     /*
     let template: _ = crate::static_asset::CHAT_HTML.into();
     let rendered = template.render(_);
     let mut rep = HttpResponse::ok();
-    rep.set_payload_str_with_mime(rendered, HttpMime::TextHtml);
+    rep.set_payload_str_with_mime(rendered, Mime::TextHtml);
     rep.into()
     */
   }));
@@ -194,16 +195,16 @@ pub fn routes() -> Router {
     println!("DEBUG:  oc_back: route:   asset={:?}", asset);
     let (data, mime) = match asset {
       "tachyons.min.css" => {
-        (crate::static_asset::TACHYONS_MIN_CSS, HttpMime::TextCss)
+        (crate::static_asset::TACHYONS_MIN_CSS, Mime::TextCss)
       }
       "katex.min.css" => {
-        (crate::static_asset::KATEX_MIN_CSS, HttpMime::TextCss)
+        (crate::static_asset::KATEX_MIN_CSS, Mime::TextCss)
       }
       "katex.min.js" => {
-        (crate::static_asset::KATEX_MIN_JS, HttpMime::ApplicationJavascript)
+        (crate::static_asset::KATEX_MIN_JS, Mime::ApplicationJavascript)
       }
       "auto-render.min.js" => {
-        (crate::static_asset::AUTO_RENDER_MIN_JS, HttpMime::ApplicationJavascript)
+        (crate::static_asset::AUTO_RENDER_MIN_JS, Mime::ApplicationJavascript)
       }
       _ => return None
     };
