@@ -1,5 +1,9 @@
 pub const CHAT_HTML: &'static str
     = include_str!("../../oc_front/chat.html");
+pub const CHAT_JS: &'static str
+    = include_str!("../../oc_front/chat.js");
+pub const STYLE_CSS: &'static str
+    = include_str!("../../oc_front/style.css");
 pub const KATEX_MIN_JS: &'static str
     = include_str!("../../oc_front/katex.min.js");
 //pub const KATEX_MIN_JS_GZ: &'static [u8]
@@ -16,5 +20,3 @@ pub const AUTO_RENDER_MIN_JS: &'static str
     = include_str!("../../oc_front/auto-render.min.js");
 //pub const AUTO_RENDER_MIN_JS_GZ: &'static [u8]
 //    = include_bytes!("../../oc_front/auto-render.min.js.gz");
-pub const CHAT_JS: &'static str
-    = include_str!("../../oc_front/chat.js");

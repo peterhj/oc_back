@@ -200,6 +200,9 @@ pub fn routes() -> Router {
       "katex.min.css" => {
         (crate::static_asset::KATEX_MIN_CSS, Mime::TextCss)
       }
+      "style.css" => {
+        (crate::static_asset::STYLE_CSS, Mime::TextCss)
+      }
       "katex.min.js" => {
         (crate::static_asset::KATEX_MIN_JS, Mime::ApplicationJavascript)
       }
