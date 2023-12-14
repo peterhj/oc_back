@@ -19,10 +19,10 @@ lto = false
 [dependencies]
 constant_time_eq = { path = "../constant_time_eq" }
 getrandom = { path = "../getrandom" }
-#http1 = { path = "../http1" }
 rustc_serialize = { path = "../rustc_serialize" }
 service_base = { path = "../service_base" }
 time = { path = "../time-0.1" }
+#zip = { path = "../zip", features = ["deflate"] }
 
 [[bin]]
 name = "oc_back_service"

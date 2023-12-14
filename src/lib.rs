@@ -137,20 +137,16 @@ pub fn static_access_tokens() -> Vec<((), String, Box<[u8]>)> {
 pub fn routes() -> Router {
   let mut router = Router::new();
   router.insert_get((), Box::new(move |_, _, _| {
-    println!("DEBUG:  oc_back: route: /");
-    let mut rep = HttpResponse::ok();
-    rep.set_payload_str_with_mime("Hello world!\n", Mime::TextHtml);
-    rep.into()
+    println!("DEBUG:  oc_back: route: GET /");
+    ok().with_payload_str_mime("Hello world!\n", Mime::TextHtml).into()
   }));
   router.insert_get("about", Box::new(move |_, _, _| {
-    println!("DEBUG:  oc_back: route: /about");
-    let mut rep = HttpResponse::ok();
-    rep.set_payload_str_with_mime("It&rsquo;s about time.\n", Mime::TextHtml);
-    rep.into()
+    println!("DEBUG:  oc_back: route: GET /about");
+    ok().with_payload_str_mime("It&rsquo;s about time.\n", Mime::TextHtml).into()
   }));
   let tokens0 = static_access_tokens();
   router.insert_get(("olympiadchat", "{token:base64}"), Box::new(move |_, args, _| {
-    println!("DEBUG:  oc_back: route: /olympiadchat/{{token}}");
+    println!("DEBUG:  oc_back: route: GET /olympiadchat/{{token}}");
     let token = args.get("token")?.as_base64()?;
     let ident = {
       let mut mat_ident = None;
@@ -165,20 +161,16 @@ pub fn routes() -> Router {
     println!("DEBUG:  oc_back: route:   ident={:?}", ident);
     let template = crate::static_asset::CHAT_HTML;
     let html = template.replace("{{host}}", &format!("https://zanodu.xyz/olympiadchat/{}", base64::URL_SAFE.encode(&token)));
-    let mut rep = HttpResponse::ok();
-    rep.set_payload_str_with_mime(html, Mime::TextHtml);
-    rep.into()
+    ok().with_payload_str_mime(html, Mime::TextHtml).into()
     /*
     let template: _ = crate::static_asset::CHAT_HTML.into();
     let rendered = template.render(_);
-    let mut rep = HttpResponse::ok();
-    rep.set_payload_str_with_mime(rendered, Mime::TextHtml);
-    rep.into()
+    ok().with_payload_str_mime(rendered, Mime::TextHtml).into()
     */
   }));
   let tokens0 = static_access_tokens();
   router.insert_get(("olympiadchat", "{token:base64}", "{asset}"), Box::new(move |_, args, _| {
-    println!("DEBUG:  oc_back: route: /olympiadchat/{{token}}/{{asset}}");
+    println!("DEBUG:  oc_back: route: GET /olympiadchat/{{token}}/{{asset}}");
     let token = args.get("token")?.as_base64()?;
     let ident = {
       let mut mat_ident = None;
@@ -193,6 +185,7 @@ pub fn routes() -> Router {
     println!("DEBUG:  oc_back: route:   ident={:?}", ident);
     let asset = args.get("asset")?.as_str()?;
     println!("DEBUG:  oc_back: route:   asset={:?}", asset);
+    // FIXME: cache control.
     let (data, mime) = match asset {
       "tachyons.min.css" => {
         (crate::static_asset::TACHYONS_MIN_CSS, Mime::TextCss)
@@ -214,9 +207,7 @@ pub fn routes() -> Router {
       }
       _ => return None
     };
-    let mut rep = HttpResponse::ok();
-    rep.set_payload_str_with_mime(data, mime);
-    rep.into()
+    ok().with_payload_str_mime(data, mime).into()
   }));
   /*router.insert_get(("olympiadchat", "{token:base64}", "api", "{endpoint}"), Box::new(move |_, args, _| {
     let token = args.get("token")?.as_base64()?;
@@ -231,6 +222,13 @@ pub fn routes() -> Router {
       mat_ident?
     };*/
     let endpoint = args.get("endpoint")?.as_str()?;
+    match endpoint {
+      "hi" => {
+      }
+      "ask" => {
+      }
+      _ => return None
+    }
     unimplemented!();
   }));*/
   // TODO TODO
