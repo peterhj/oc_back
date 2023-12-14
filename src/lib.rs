@@ -218,22 +218,35 @@ pub fn routes() -> Router {
             let mut buf = Vec::new();
             let mut enc = flate::deflate::Encoder::new(&mut buf);
             match enc.write_all(data.as_bytes()) {
-              Err(_) => {
+              Err(e) => {
                 drop(enc);
+                println!("DEBUG:  route:   deflate? write err: {:?}", e);
                 cache.insert(asset.to_owned(), Err(()));
               }
               Ok(_) => {
-                drop(enc);
-                cache.insert(asset.to_owned(), Ok(buf));
+                match enc.finish().into_result() {
+                  Err(e) => {
+                    drop(enc);
+                    println!("DEBUG:  route:   deflate? finish err: {:?}", e);
+                    cache.insert(asset.to_owned(), Err(()));
+                  }
+                  Ok(_) => {
+                    drop(enc);
+                    println!("DEBUG:  route:   deflate? ok: len={}", buf.len());
+                    cache.insert(asset.to_owned(), Ok(buf));
+                  }
+                }
               }
             }
             retry = true;
             continue;
           }
           Some(Err(_)) => {
+            println!("DEBUG:  route:   no cache");
             break ok().with_payload_str_mime(data, mime).into();
           }
           Some(Ok(compressed)) => {
+            println!("DEBUG:  route:   cache ok: len={}", compressed.len());
             // FIXME: preserve utf-8 charset.
             break ok().with_payload_bin_mime_encoding(compressed.to_owned(), mime, HttpEncoding::Deflate).into();
           }
