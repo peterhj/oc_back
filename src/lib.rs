@@ -1,6 +1,9 @@
 extern crate constant_time_eq;
+extern crate once_cell;
 extern crate rustc_serialize;
 extern crate service_base;
+
+use crate::secret_asset::*;
 
 use constant_time_eq::*;
 use rustc_serialize::base64;
@@ -10,7 +13,6 @@ use service_base::daemon::{protect};
 use service_base::route::*;
 
 use std::convert::{TryInto};
-use std::io::{BufRead, BufReader, Cursor};
 use std::net::{TcpListener, TcpStream};
 use std::sync::{Arc};
 use std::sync::mpsc::{SyncSender, Receiver, sync_channel};
@@ -122,19 +124,6 @@ pub fn service_main() -> () {
   });
 }
 
-pub fn static_access_tokens() -> Vec<((), String, Box<[u8]>)> {
-  let mut tokens = Vec::new();
-  for line in BufReader::new(Cursor::new(crate::secret_asset::ACCESS_TOKENS)).lines() {
-    let line = line.unwrap();
-    let parts: Vec<_> = line.split(",").collect();
-    tokens.push((
-    (),
-    parts[1].into(),
-    base64::decode_from_str(parts[2]).unwrap().into()));
-  }
-  tokens
-}
-
 pub fn routes() -> Router {
   let mut router = Router::new();
   router.insert_get((), Box::new(move |_, _, _| {
@@ -145,7 +134,8 @@ pub fn routes() -> Router {
     println!("DEBUG:  oc_back: route: GET /about");
     ok().with_payload_str_mime("It&rsquo;s about time.\n", Mime::TextHtml).into()
   }));
-  let tokens0 = static_access_tokens();
+  //let tokens0 = static_access_tokens();
+  let tokens0 = &STATIC_ACCESS_TOKENS;
   router.insert_get(("olympiadchat", "{token:base64}"), Box::new(move |_, args, _| {
     println!("DEBUG:  oc_back: route: GET /olympiadchat/{{token}}");
     let token = args.get("token")?.as_base64()?;
@@ -167,7 +157,8 @@ pub fn routes() -> Router {
                   .replace("{{host}}", &format!("https://zanodu.xyz/olympiadchat/{}", base64::URL_SAFE.encode(&token)));
     ok().with_payload_str_mime(rendered, Mime::TextHtml).into()
   }));
-  let tokens0 = static_access_tokens();
+  //let tokens0 = static_access_tokens();
+  let tokens0 = &STATIC_ACCESS_TOKENS;
   router.insert_get(("olympiadchat", "{token:base64}", "{asset}"), Box::new(move |_, args, _| {
     println!("DEBUG:  oc_back: route: GET /olympiadchat/{{token}}/{{asset}}");
     let token = args.get("token")?.as_base64()?;
@@ -211,7 +202,8 @@ pub fn routes() -> Router {
     };
     ok().with_payload_str_mime(data, mime).into()
   }));
-  /*router.insert_get(("olympiadchat", "{token:base64}", "api", "{endpoint}"), Box::new(move |_, args, _| {
+  /*let tokens0 = &STATIC_ACCESS_TOKENS;
+  router.insert_get(("olympiadchat", "{token:base64}", "api", "{endpoint}"), Box::new(move |_, args, _| {
     let token = args.get("token")?.as_base64()?;
     /*let ident = {
       let mut mat_ident = None;
