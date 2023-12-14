@@ -8,6 +8,7 @@ use crate::secret_asset::*;
 
 use constant_time_eq::*;
 use rustc_serialize::base64;
+use rustc_serialize::json;
 use service_base::prelude::*;
 use service_base::chan::*;
 use service_base::daemon::{protect};
@@ -230,7 +231,7 @@ pub fn routes() -> Router {
                     cache.insert(asset.to_owned(), Err(()));
                   }
                   Ok(_) => {
-                    println!("DEBUG:  oc_back: route:   deflate? ok: len={}", buf.len());
+                    println!("DEBUG:  oc_back: route:   deflate? ok: olen={} len={}", data.len(), buf.len());
                     cache.insert(asset.to_owned(), Ok(buf));
                   }
                 }
@@ -240,7 +241,7 @@ pub fn routes() -> Router {
             continue;
           }
           Some(Err(_)) => {
-            println!("DEBUG:  oc_back: route:   no cache");
+            println!("DEBUG:  oc_back: route:   no cache: olen={}", data.len());
             break ok().with_payload_str_mime(data, mime).into();
           }
           Some(Ok(compressed)) => {
@@ -253,10 +254,11 @@ pub fn routes() -> Router {
       }
     })
   }));
-  /*let tokens0 = &STATIC_ACCESS_TOKENS;
-  router.insert_get(("olympiadchat", "{token:base64}", "api", "{endpoint}"), Box::new(move |_, args, _| {
+  let tokens0 = &STATIC_ACCESS_TOKENS;
+  router.insert_post(("olympiadchat", "{token:base64}", "wapi", "{endpoint}"), Box::new(move |_, args, _| {
+    println!("DEBUG:  oc_back: route: POST /olympiadchat/{{token}}/wapi/{{endpoint}}");
     let token = args.get("token")?.as_base64()?;
-    /*let ident = {
+    let ident = {
       let mut mat_ident = None;
       for &(_, ref ident, ref token0) in tokens0.iter() {
         if constant_time_eq(token0, token) {
@@ -265,17 +267,65 @@ pub fn routes() -> Router {
         }
       }
       mat_ident?
-    };*/
+    };
+    println!("DEBUG:  oc_back: route:   ident={:?}", ident);
     let endpoint = args.get("endpoint")?.as_str()?;
+    println!("DEBUG:  oc_back: route:   endpoint={:?}", endpoint);
+    // TODO TODO
     match endpoint {
       "hi" => {
+        #[derive(RustcEncodable)]
+        struct Reply {
+          seq_nr: i64,
+        };
+        let reply = Reply{seq_nr: 1};
+        match json::encode_to_string(&reply) {
+          Err(_) => {
+            // FIXME: error payload.
+            return None;
+          }
+          Ok(data) => {
+            return ok().with_payload_str_mime(data, Mime::ApplicationJson.into()).into();
+          }
+        }
       }
-      "ask" => {
+      "poll" => {
+        #[derive(RustcEncodable)]
+        struct Reply {
+          ready: bool,
+        };
+        let reply = Reply{ready: false};
+        match json::encode_to_string(&reply) {
+          Err(_) => {
+            // FIXME: error payload.
+            return None;
+          }
+          Ok(data) => {
+            return ok().with_payload_str_mime(data, Mime::ApplicationJson.into()).into();
+          }
+        }
+      }
+      "post" => {
+        #[derive(RustcEncodable)]
+        struct Reply {
+          err: bool,
+        };
+        let reply = Reply{err: false};
+        match json::encode_to_string(&reply) {
+          Err(_) => {
+            // FIXME: error payload.
+            return None;
+          }
+          Ok(data) => {
+            return ok().with_payload_str_mime(data, Mime::ApplicationJson.into()).into();
+          }
+        }
       }
       _ => return None
     }
-    unimplemented!();
-  }));*/
+    None
+    //unimplemented!();
+  }));
   // TODO TODO
   router
 }
