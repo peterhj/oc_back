@@ -226,12 +226,10 @@ pub fn routes() -> Router {
               Ok(_) => {
                 match enc.finish().into_result() {
                   Err(e) => {
-                    drop(enc);
                     println!("DEBUG:  route:   deflate? finish err: {:?}", e);
                     cache.insert(asset.to_owned(), Err(()));
                   }
                   Ok(_) => {
-                    drop(enc);
                     println!("DEBUG:  route:   deflate? ok: len={}", buf.len());
                     cache.insert(asset.to_owned(), Ok(buf));
                   }
