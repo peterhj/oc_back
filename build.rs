@@ -12,6 +12,7 @@ fn main() {
   println!("cargo:rerun-if-changed=build.rs");
   println!("cargo:rerun-if-changed=.git/logs/HEAD");
   println!("cargo:rerun-if-changed=../oc_front/.git/logs/HEAD");
+  let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
   let mut tsp_f = OpenOptions::new().write(true).create(true).truncate(true)
     .open(out_dir.join("timestamp")).unwrap();
   write!(&mut tsp_f, "{}", t.rfc3339()).unwrap();
@@ -22,7 +23,6 @@ fn main() {
   assert!(res.status.success());
   let line = Cursor::new(res.stdout).lines().next().unwrap();
   let line = line.unwrap();
-  let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
   let mut gch_f = OpenOptions::new().write(true).create(true).truncate(true)
     .open(out_dir.join("git_commit_hash")).unwrap();
   write!(&mut gch_f, "{}", line).unwrap();
@@ -33,7 +33,6 @@ fn main() {
   assert!(res.status.success());
   let line = Cursor::new(res.stdout).lines().next().unwrap();
   let line = line.unwrap();
-  let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
   let mut gch_f = OpenOptions::new().write(true).create(true).truncate(true)
     .open(out_dir.join("front_git_commit_hash")).unwrap();
   write!(&mut gch_f, "{}", line).unwrap();
