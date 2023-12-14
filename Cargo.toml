@@ -21,12 +21,12 @@ time = { path = "../time-0.1" }
 
 [dependencies]
 constant_time_eq = { path = "../constant_time_eq" }
+flate = { path = "../flate" }
 getrandom = { path = "../getrandom" }
 once_cell = { path = "../once_cell" }
 rustc_serialize = { path = "../rustc_serialize" }
 service_base = { path = "../service_base" }
 time = { path = "../time-0.1" }
-#zip = { path = "../zip", features = ["deflate"] }
 
 [[bin]]
 name = "oc_back_service"

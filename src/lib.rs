@@ -1,4 +1,5 @@
 extern crate constant_time_eq;
+extern crate flate;
 extern crate once_cell;
 extern crate rustc_serialize;
 extern crate service_base;
@@ -12,7 +13,10 @@ use service_base::chan::*;
 use service_base::daemon::{protect};
 use service_base::route::*;
 
+use std::cell::{RefCell};
+use std::collections::{BTreeMap};
 use std::convert::{TryInto};
+use std::io::{Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::{Arc};
 use std::sync::mpsc::{SyncSender, Receiver, sync_channel};
@@ -124,6 +128,10 @@ pub fn service_main() -> () {
   });
 }
 
+thread_local! {
+  static TL_CACHE: RefCell<BTreeMap<String, Result<Vec<u8>, ()>>> = RefCell::new(BTreeMap::new());
+}
+
 pub fn routes() -> Router {
   let mut router = Router::new();
   router.insert_get((), Box::new(move |_, _, _| {
@@ -200,7 +208,39 @@ pub fn routes() -> Router {
       }
       _ => return None
     };
-    ok().with_payload_str_mime(data, mime).into()
+    TL_CACHE.with(move|cache| {
+      let mut retry = false;
+      let mut cache = cache.borrow_mut();
+      loop {
+        match cache.get(asset) {
+          None => {
+            assert!(!retry);
+            let mut buf = Vec::new();
+            let mut enc = flate::deflate::Encoder::new(&mut buf);
+            match enc.write_all(data.as_bytes()) {
+              Err(_) => {
+                drop(enc);
+                cache.insert(asset.to_owned(), Err(()));
+              }
+              Ok(_) => {
+                drop(enc);
+                cache.insert(asset.to_owned(), Ok(buf));
+              }
+            }
+            retry = true;
+            continue;
+          }
+          Some(Err(_)) => {
+            break ok().with_payload_str_mime(data, mime).into();
+          }
+          Some(Ok(compressed)) => {
+            // FIXME: preserve utf-8 charset.
+            break ok().with_payload_bin_mime_encoding(compressed.to_owned(), mime, HttpEncoding::Deflate).into();
+          }
+        }
+        unreachable!();
+      }
+    })
   }));
   /*let tokens0 = &STATIC_ACCESS_TOKENS;
   router.insert_get(("olympiadchat", "{token:base64}", "api", "{endpoint}"), Box::new(move |_, args, _| {
