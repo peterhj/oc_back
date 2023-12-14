@@ -17,6 +17,7 @@ use std::sync::mpsc::{SyncSender, Receiver, sync_channel};
 use std::thread::{sleep, spawn};
 use std::time::{Duration};
 
+pub mod build;
 pub mod gen_asset;
 pub mod secret_asset;
 pub mod static_asset;
