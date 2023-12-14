@@ -285,7 +285,7 @@ pub fn routes() -> Router {
             return None;
           }
           Ok(data) => {
-            return ok().with_payload_str_mime(data, Mime::ApplicationJson.into()).into();
+            return created().with_payload_str_mime(data, Mime::ApplicationJson.into()).into();
           }
         }
       }
@@ -301,7 +301,7 @@ pub fn routes() -> Router {
             return None;
           }
           Ok(data) => {
-            return ok().with_payload_str_mime(data, Mime::ApplicationJson.into()).into();
+            return created().with_payload_str_mime(data, Mime::ApplicationJson.into()).into();
           }
         }
       }
@@ -317,7 +317,7 @@ pub fn routes() -> Router {
             return None;
           }
           Ok(data) => {
-            return ok().with_payload_str_mime(data, Mime::ApplicationJson.into()).into();
+            return created().with_payload_str_mime(data, Mime::ApplicationJson.into()).into();
           }
         }
       }
