@@ -161,7 +161,10 @@ pub fn routes() -> Router {
     };
     println!("DEBUG:  oc_back: route:   ident={:?}", ident);
     let template = crate::static_asset::CHAT_HTML;
-    let rendered = template.replace("{{host}}", &format!("https://zanodu.xyz/olympiadchat/{}", base64::URL_SAFE.encode(&token)));
+    // FIXME: aho corasick.
+    let rendered = template
+                  .replace("{{build}}", &format!("{}.{}", crate::build::date(), crate::build::digest()))
+                  .replace("{{host}}", &format!("https://zanodu.xyz/olympiadchat/{}", base64::URL_SAFE.encode(&token)));
     ok().with_payload_str_mime(rendered, Mime::TextHtml).into()
   }));
   let tokens0 = static_access_tokens();
