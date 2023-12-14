@@ -16,6 +16,9 @@ codegen-units = 256
 incremental = true
 lto = false
 
+[build-dependencies]
+time = { path = "../time-0.1" }
+
 [dependencies]
 constant_time_eq = { path = "../constant_time_eq" }
 getrandom = { path = "../getrandom" }
