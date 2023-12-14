@@ -200,7 +200,8 @@ pub fn routes() -> Router {
       "chat.js" => {
         let template = crate::static_asset::CHAT_JS;
         let rendered = template.replace("{{host}}", &format!("https://zanodu.xyz/olympiadchat/{}", base64::URL_SAFE.encode(&token)));
-        (rendered, Mime::ApplicationJavascript)
+        let (data, mime) = (rendered, Mime::ApplicationJavascript);
+        return ok().with_payload_str_mime(data, mime).into();
       }
       _ => return None
     };
