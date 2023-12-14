@@ -160,13 +160,8 @@ pub fn routes() -> Router {
     };
     println!("DEBUG:  oc_back: route:   ident={:?}", ident);
     let template = crate::static_asset::CHAT_HTML;
-    let html = template.replace("{{host}}", &format!("https://zanodu.xyz/olympiadchat/{}", base64::URL_SAFE.encode(&token)));
-    ok().with_payload_str_mime(html, Mime::TextHtml).into()
-    /*
-    let template: _ = crate::static_asset::CHAT_HTML.into();
-    let rendered = template.render(_);
+    let rendered = template.replace("{{host}}", &format!("https://zanodu.xyz/olympiadchat/{}", base64::URL_SAFE.encode(&token)));
     ok().with_payload_str_mime(rendered, Mime::TextHtml).into()
-    */
   }));
   let tokens0 = static_access_tokens();
   router.insert_get(("olympiadchat", "{token:base64}", "{asset}"), Box::new(move |_, args, _| {
@@ -203,7 +198,9 @@ pub fn routes() -> Router {
         (crate::static_asset::AUTO_RENDER_MIN_JS, Mime::ApplicationJavascript)
       }
       "chat.js" => {
-        (crate::static_asset::CHAT_JS, Mime::ApplicationJavascript)
+        let template = crate::static_asset::CHAT_JS;
+        let rendered = template.replace("{{host}}", &format!("https://zanodu.xyz/olympiadchat/{}", base64::URL_SAFE.encode(&token)));
+        (rendered, Mime::ApplicationJavascript)
       }
       _ => return None
     };
