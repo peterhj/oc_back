@@ -1,5 +1,6 @@
 extern crate constant_time_eq;
 extern crate flate;
+extern crate oc_engine;
 extern crate once_cell;
 extern crate rustc_serialize;
 extern crate service_base;
@@ -7,6 +8,8 @@ extern crate service_base;
 use crate::secret_asset::*;
 
 use constant_time_eq::*;
+use flate::deflate::{Encoder as DeflateEncoder};
+use oc_engine::*;
 use rustc_serialize::base64;
 use rustc_serialize::json;
 use service_base::prelude::*;
@@ -30,12 +33,12 @@ pub mod secret_asset;
 pub mod static_asset;
 
 pub fn service_main() -> () {
-  let (front_tx, back_rx) = sync_channel(8);
-  let (back_tx, front_rx) = sync_channel(8);
+  let (back_tx, engine_rx) = sync_channel(8);
+  let (engine_tx, back_rx) = sync_channel(8);
   let _ = spawn(move || {
     'outer: loop {
       let port_start = 10000;
-      let port_fin = 10009;
+      let port_fin = 10099;
       let mut port = port_start;
       let stream = loop {
         match TcpStream::connect(("127.0.0.1", port)) {
@@ -43,13 +46,13 @@ pub fn service_main() -> () {
           Ok(stream) => break stream
         }
         if port >= port_fin {
-          match back_rx.try_recv() {
+          match engine_rx.try_recv() {
             Ok(_) => {
-              let _ = back_tx.send(None);
+              let _ = engine_tx.send(None);
               loop {
-                match back_rx.try_recv() {
+                match engine_rx.try_recv() {
                   Ok(_) => {
-                    let _ = back_tx.send(None);
+                    let _ = engine_tx.send(None);
                   }
                   _ => {
                     break;
@@ -66,15 +69,15 @@ pub fn service_main() -> () {
         port += 1;
       };
       println!("INFO:   engine: connected on port={}", port);
-      let mut chan = Chan::new(stream);
+      let mut chan = Chan::<EngineMsg>::new(stream);
       loop {
-        match back_rx.recv() {
+        match engine_rx.recv() {
           Ok(req) => {
             let rep = match chan.query(&Msg::JSO(req)) {
               Ok(Msg::JSO(rep)) => Some(rep),
               _ => break
             };
-            match back_tx.send(rep) {
+            match engine_tx.send(rep) {
               Ok(_) => {}
               _ => {}
             }
@@ -217,7 +220,7 @@ pub fn routes() -> Router {
           None => {
             assert!(!retry);
             let mut buf = Vec::new();
-            let mut enc = flate::deflate::Encoder::new(&mut buf);
+            let mut enc = DeflateEncoder::new(&mut buf);
             match enc.write_all(data.as_bytes()) {
               Err(e) => {
                 drop(enc);
