@@ -107,7 +107,7 @@ pub fn service_main() -> () {
   println!("INFO:   listening on {}:{}", host, port);
   let chroot_dir = "/var/lib/oc_back/new_root";
   protect(chroot_dir, 297, 297).unwrap();
-  let pool = SpawnPool::new(bind);
+  let pool: SpawnPool = SpawnPool::new(bind);
   pool.replying({
     // FIXME FIXME: pre and post functions.
     //println!("INFO:   gateway: connected on {}:{}", host, port);
