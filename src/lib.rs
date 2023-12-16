@@ -33,6 +33,24 @@ pub mod secret_asset;
 pub mod static_asset;
 
 pub fn service_main() -> () {
+  let router = Arc::new(routes());
+  let host = "127.0.0.1";
+  let port_start = 9000;
+  let port_fin = 9009;
+  let mut port = port_start;
+  let bind = loop {
+    match TcpListener::bind((host, port)) {
+      Err(_) => {}
+      Ok(bind) => break bind
+    }
+    if port >= port_fin {
+      panic!("ERROR:  oc_back::service_main: failed to bind port");
+    }
+    port += 1;
+  };
+  println!("INFO:   listening on {}:{}", host, port);
+  let chroot_dir = "/var/lib/oc_back/new_root";
+  protect(chroot_dir, 297, 297).unwrap();
   let (back_tx, engine_rx) = sync_channel(8);
   let (engine_tx, back_rx) = sync_channel(8);
   let _ = spawn(move || {
@@ -89,24 +107,6 @@ pub fn service_main() -> () {
       println!("INFO:   engine: disconnected");
     }
   });
-  let router = Arc::new(routes());
-  let host = "127.0.0.1";
-  let port_start = 9000;
-  let port_fin = 9009;
-  let mut port = port_start;
-  let bind = loop {
-    match TcpListener::bind((host, port)) {
-      Err(_) => {}
-      Ok(bind) => break bind
-    }
-    if port >= port_fin {
-      panic!("ERROR:  oc_back::service_main: failed to bind port");
-    }
-    port += 1;
-  };
-  println!("INFO:   listening on {}:{}", host, port);
-  let chroot_dir = "/var/lib/oc_back/new_root";
-  protect(chroot_dir, 297, 297).unwrap();
   let pool: SpawnPool = SpawnPool::new(bind);
   pool.replying({
     // FIXME FIXME: pre and post functions.
