@@ -21,6 +21,8 @@ time = { path = "../time-0.1" }
 
 [dependencies]
 constant_time_eq = { path = "../constant_time_eq" }
+deflate = { path = "../deflate" }
+fdeflate = { path = "../fdeflate" }
 flate = { path = "../flate" }
 getrandom = { path = "../getrandom" }
 oc_engine = { path = "../oc_engine" }
