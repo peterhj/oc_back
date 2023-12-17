@@ -1,5 +1,6 @@
 extern crate constant_time_eq;
 extern crate flate;
+extern crate minify_js;
 extern crate oc_engine;
 extern crate once_cell;
 extern crate rustc_serialize;
@@ -96,7 +97,10 @@ pub fn service_main() -> () {
           Ok((req, engine_tx)) => {
             let rep = match chan.query(&Msg::Ext(req)) {
               Ok(Msg::Ext(rep)) => rep,
-              _ => break
+              _ => {
+                println!("DEBUG:  engine:   query: failed");
+                break;
+              }
             };
             match engine_tx.send(rep) {
               Ok(_) => {}
@@ -136,7 +140,74 @@ pub fn service_main() -> () {
 }
 
 thread_local! {
-  static TL_CACHE: RefCell<BTreeMap<String, Result<Vec<u8>, ()>>> = RefCell::new(BTreeMap::new());
+  static TL_CACHE: RefCell<BTreeMap<String, (CacheTag, Result<Vec<u8>, ()>)>> = RefCell::new(BTreeMap::new());
+}
+
+#[derive(Clone, Copy, Debug)]
+#[repr(u8)]
+pub enum CacheTag {
+  Deflate,
+  MinifyJs,
+}
+
+pub fn cached<V: AsRef<str>>(key: &'static str, tag: CacheTag, data: V, mime: Mime) -> Option<HttpResponse> {
+  let data = data.as_ref();
+  TL_CACHE.with(move |cache| {
+    let mut retry = false;
+    let mut cache = cache.borrow_mut();
+    loop {
+      match cache.get(key) {
+        None => {
+          assert!(!retry);
+          match tag {
+            CacheTag::Deflate => {
+              let mut buf = Vec::new();
+              let mut enc = DeflateEncoder::new(&mut buf);
+              match enc.write_all(data.as_bytes()) {
+                Err(e) => {
+                  drop(enc);
+                  println!("DEBUG:  oc_back: route:   deflate? write err: {:?}", e);
+                  cache.insert(key.to_owned(), (tag, Err(())));
+                }
+                Ok(_) => {
+                  match enc.finish().into_result() {
+                    Err(e) => {
+                      println!("DEBUG:  oc_back: route:   deflate? finish err: {:?}", e);
+                      cache.insert(key.to_owned(), (tag, Err(())));
+                    }
+                    Ok(_) => {
+                      println!("DEBUG:  oc_back: route:   deflate? ok: olen={} len={}", data.len(), buf.len());
+                      cache.insert(key.to_owned(), (tag, Ok(buf)));
+                    }
+                  }
+                }
+              }
+            }
+            CacheTag::MinifyJs => {
+              // TODO TODO
+              unimplemented!();
+            }
+          }
+          retry = true;
+          continue;
+        }
+        Some((_, Err(_))) => {
+          println!("DEBUG:  oc_back: route:   no cache: olen={}", data.len());
+          break ok().with_payload_str_mime(data, mime).into();
+        }
+        Some((CacheTag::Deflate, Ok(compressed))) => {
+          println!("DEBUG:  oc_back: route:   cache ok: len={}", compressed.len());
+          // FIXME: preserve utf-8 charset.
+          break ok().with_payload_bin_mime_encoding(compressed.to_owned(), mime, HttpEncoding::Deflate).into();
+        }
+        Some((CacheTag::MinifyJs, Ok(_))) => {
+          // TODO TODO
+          unimplemented!();
+        }
+      }
+      unreachable!();
+    }
+  })
 }
 
 pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx: Receiver<EngineMsg>*/) -> Router {
@@ -191,74 +262,32 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
     let asset = args.get("asset")?.as_str()?;
     println!("DEBUG:  oc_back: route:   asset={:?}", asset);
     // FIXME: cache control.
-    let (data, mime) = match asset {
+    let (tag, data, mime) = match asset {
       "tachyons.min.css" => {
-        (crate::static_asset::TACHYONS_MIN_CSS, Mime::TextCss)
+        (CacheTag::Deflate, crate::static_asset::TACHYONS_MIN_CSS, Mime::TextCss)
       }
       "katex.min.css" => {
-        (crate::static_asset::KATEX_MIN_CSS, Mime::TextCss)
+        (CacheTag::Deflate, crate::static_asset::KATEX_MIN_CSS, Mime::TextCss)
       }
       "style.css" => {
-        (crate::static_asset::STYLE_CSS, Mime::TextCss)
+        (CacheTag::Deflate, crate::static_asset::STYLE_CSS, Mime::TextCss)
       }
       "katex.min.js" => {
-        (crate::static_asset::KATEX_MIN_JS, Mime::ApplicationJavascript)
+        (CacheTag::Deflate, crate::static_asset::KATEX_MIN_JS, Mime::ApplicationJavascript)
       }
       "auto-render.min.js" => {
-        (crate::static_asset::AUTO_RENDER_MIN_JS, Mime::ApplicationJavascript)
+        (CacheTag::Deflate, crate::static_asset::AUTO_RENDER_MIN_JS, Mime::ApplicationJavascript)
       }
       "chat.js" => {
         let template = crate::static_asset::CHAT_JS;
         let rendered = template.replace("{{host}}", &format!("https://zanodu.xyz/olympiadchat/{}", base64::URL_SAFE.encode(&token)));
+        // TODO TODO: minify js.
         let (data, mime) = (rendered, Mime::ApplicationJavascript);
         return ok().with_payload_str_mime(data, mime).into();
       }
       _ => return None
     };
-    TL_CACHE.with(move|cache| {
-      let mut retry = false;
-      let mut cache = cache.borrow_mut();
-      loop {
-        match cache.get(asset) {
-          None => {
-            assert!(!retry);
-            let mut buf = Vec::new();
-            let mut enc = DeflateEncoder::new(&mut buf);
-            match enc.write_all(data.as_bytes()) {
-              Err(e) => {
-                drop(enc);
-                println!("DEBUG:  oc_back: route:   deflate? write err: {:?}", e);
-                cache.insert(asset.to_owned(), Err(()));
-              }
-              Ok(_) => {
-                match enc.finish().into_result() {
-                  Err(e) => {
-                    println!("DEBUG:  oc_back: route:   deflate? finish err: {:?}", e);
-                    cache.insert(asset.to_owned(), Err(()));
-                  }
-                  Ok(_) => {
-                    println!("DEBUG:  oc_back: route:   deflate? ok: olen={} len={}", data.len(), buf.len());
-                    cache.insert(asset.to_owned(), Ok(buf));
-                  }
-                }
-              }
-            }
-            retry = true;
-            continue;
-          }
-          Some(Err(_)) => {
-            println!("DEBUG:  oc_back: route:   no cache: olen={}", data.len());
-            break ok().with_payload_str_mime(data, mime).into();
-          }
-          Some(Ok(compressed)) => {
-            println!("DEBUG:  oc_back: route:   cache ok: len={}", compressed.len());
-            // FIXME: preserve utf-8 charset.
-            break ok().with_payload_bin_mime_encoding(compressed.to_owned(), mime, HttpEncoding::Deflate).into();
-          }
-        }
-        unreachable!();
-      }
-    })
+    cached(asset, tag, data, mime)
   }));
   let back_tx = back_tx.clone();
   //let back_rx = back_rx.clone();
