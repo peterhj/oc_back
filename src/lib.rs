@@ -1,6 +1,6 @@
 extern crate constant_time_eq;
 extern crate flate;
-extern crate minify_js;
+//extern crate minify_js;
 extern crate oc_engine;
 extern crate once_cell;
 extern crate rustc_serialize;
@@ -148,7 +148,7 @@ thread_local! {
 #[repr(u8)]
 pub enum CacheTag {
   Deflate,
-  MinifyJs,
+  //MinifyJs,
 }
 
 pub fn cached<K: AsRef<str>, V: AsRef<str>>(key: K, tag: CacheTag, data: V, mime: Mime) -> Option<HttpResponse> {
@@ -189,7 +189,7 @@ pub fn cached<K: AsRef<str>, V: AsRef<str>>(key: K, tag: CacheTag, data: V, mime
                 }
               }
             }
-            CacheTag::MinifyJs => {
+            /*CacheTag::MinifyJs => {
               match minify_js::minify_oneshot(data.as_bytes()) {
                 Err(_) => {
                   println!("DEBUG:  oc_back: route:   minify js? err");
@@ -203,7 +203,7 @@ pub fn cached<K: AsRef<str>, V: AsRef<str>>(key: K, tag: CacheTag, data: V, mime
                   cache.insert(key.to_owned(), (tag, Ok(buf)));
                 }
               }
-            }
+            }*/
           }
           retry = true;
           continue;
@@ -217,10 +217,10 @@ pub fn cached<K: AsRef<str>, V: AsRef<str>>(key: K, tag: CacheTag, data: V, mime
           // FIXME: preserve utf-8 charset.
           break ok().with_payload_bin_mime_encoding(compressed.to_owned(), mime, HttpEncoding::Deflate).into();
         }
-        Some((CacheTag::MinifyJs, Ok(minified))) => {
+        /*Some((CacheTag::MinifyJs, Ok(minified))) => {
           println!("DEBUG:  oc_back: route:   cache ok: len={}", minified.len());
           break ok().with_payload_str_mime(from_utf8(minified).unwrap().to_owned(), mime).into();
-        }
+        }*/
       }
       unreachable!();
     }
@@ -298,10 +298,11 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
       "chat.js" => {
         let template = crate::static_asset::CHAT_JS;
         let rendered = template.replace("{{host}}", &format!("https://zanodu.xyz/olympiadchat/{}", base64::URL_SAFE.encode(&token)));
+        let (data, mime) = (rendered, Mime::ApplicationJavascript);
+        return ok().with_payload_str_mime(data, mime).into();
         // FIXME: cache key needs to be per-ident.
-        let (tag, data, mime) = (CacheTag::MinifyJs, rendered, Mime::ApplicationJavascript);
-        //return ok().with_payload_str_mime(data, mime).into();
-        return cached(asset, tag, data, mime);
+        /*let (tag, data, mime) = (CacheTag::MinifyJs, rendered, Mime::ApplicationJavascript);
+        return cached(asset, tag, data, mime);*/
       }
       _ => return None
     };
