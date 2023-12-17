@@ -51,8 +51,9 @@ pub fn service_main() -> () {
   let chroot_dir = "/var/lib/oc_back/new_root";
   protect(chroot_dir, 297, 297).unwrap();
   let (back_tx, engine_rx) = sync_channel(8);
-  let (engine_tx, back_rx) = sync_channel(8);
-  let router = Arc::new(routes(back_tx, back_rx));
+  /*let (engine_tx, back_rx) = sync_channel(8);
+  let router = Arc::new(routes(back_tx, back_rx));*/
+  let router = Arc::new(routes(back_tx));
   let _ = spawn(move || {
     'outer: loop {
       let port_start = 10000;
@@ -90,7 +91,8 @@ pub fn service_main() -> () {
       let mut chan = Chan::<EngineMsg>::new(stream);
       loop {
         match engine_rx.recv() {
-          Ok(req) => {
+          //Ok(req) => {}
+          Ok((req, engine_tx)) => {
             let rep = match chan.query(&Msg::Ext(req)) {
               Ok(Msg::Ext(rep)) => rep,
               _ => break
@@ -136,7 +138,7 @@ thread_local! {
   static TL_CACHE: RefCell<BTreeMap<String, Result<Vec<u8>, ()>>> = RefCell::new(BTreeMap::new());
 }
 
-pub fn routes(back_tx: SyncSender<EngineMsg>, back_rx: Receiver<EngineMsg>) -> Router {
+pub fn routes(back_tx: SyncSender<EngineMsg>, /*back_rx: Receiver<EngineMsg>*/) -> Router {
   let mut router = Router::new();
   router.insert_get((), Box::new(move |_, _, _| {
     println!("DEBUG:  oc_back: route: GET /");
@@ -258,7 +260,7 @@ pub fn routes(back_tx: SyncSender<EngineMsg>, back_rx: Receiver<EngineMsg>) -> R
     })
   }));
   let back_tx = back_tx.clone();
-  let back_rx = back_rx.clone();
+  //let back_rx = back_rx.clone();
   let tokens0 = &STATIC_ACCESS_TOKENS;
   router.insert_post(("olympiadchat", "{token:base64}", "wapi", "{endpoint}"), Box::new(move |_, args, _| {
     println!("DEBUG:  oc_back: route: POST /olympiadchat/{{token}}/wapi/{{endpoint}}");
@@ -297,9 +299,10 @@ pub fn routes(back_tx: SyncSender<EngineMsg>, back_rx: Receiver<EngineMsg>) -> R
       "post" => {
         // FIXME
         let val = "Let $ABC$ be a triangle.".to_owned();
-        match back_tx.send(EngineMsg::EMQ(EngineMatReq{
+        let (engine_tx, back_rx) = sync_channel(1);
+        match back_tx.send((EngineMsg::EMQ(EngineMatReq{
           val,
-        })) {
+        }), engine_tx)) {
           Err(_) => {
             return None;
           }
