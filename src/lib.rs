@@ -59,6 +59,7 @@ pub fn service_main() -> () {
   let router = Arc::new(routes(back_tx, back_rx));*/
   let router = Arc::new(routes(back_tx));
   let _ = spawn(move || {
+    let mut retry: Option<(EngineMsg, SyncSender<EngineMsg>)> = None;
     'outer: loop {
       let port_start = 10000;
       let port_fin = 10099;
@@ -69,6 +70,7 @@ pub fn service_main() -> () {
           Ok(stream) => break stream
         }
         if port >= port_fin {
+          let _ = retry.take();
           match engine_rx.try_recv() {
             Ok(_) => {
               //let _ = engine_tx.send(None);
@@ -93,14 +95,38 @@ pub fn service_main() -> () {
       };
       println!("INFO:   engine: connected on port={}", port);
       let mut chan = Chan::<EngineMsg>::new(stream);
+      if let Some((req, engine_tx)) = retry.take() {
+        let req = Msg::Ext(req);
+        let rep = match chan.query(&req) {
+          Ok(Msg::Ext(rep)) => rep,
+          _ => {
+            println!("DEBUG:  engine:   query: immediately failed");
+            let req = match req {
+              Msg::Ext(req) => req,
+              _ => unreachable!()
+            };
+            retry = Some((req, engine_tx));
+            break;
+          }
+        };
+        match engine_tx.send(rep) {
+          Ok(_) => {}
+          _ => {}
+        }
+      }
       loop {
         match engine_rx.recv() {
-          //Ok(req) => {}
           Ok((req, engine_tx)) => {
-            let rep = match chan.query(&Msg::Ext(req)) {
+            let req = Msg::Ext(req);
+            let rep = match chan.query(&req) {
               Ok(Msg::Ext(rep)) => rep,
               _ => {
                 println!("DEBUG:  engine:   query: failed");
+                let req = match req {
+                  Msg::Ext(req) => req,
+                  _ => unreachable!()
+                };
+                retry = Some((req, engine_tx));
                 break;
               }
             };
