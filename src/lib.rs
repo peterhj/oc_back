@@ -181,7 +181,7 @@ pub fn cached<K: AsRef<str>, V: AsRef<str>>(key: K, tag: CacheTag, data: V, mime
                     Ok(_) => {
                       let t1 = time::get_time_coarse();
                       let dt = (t1 - t0).to_std().unwrap();
-                      let dt = dt.as_secs() as f64 + 1.0e-6 * dt.as_subsec_nanos() as f64;
+                      let dt = dt.as_secs() as f64 + 1.0e-6 * dt.subsec_nanos() as f64;
                       println!("DEBUG:  oc_back: route:   deflate? ok: olen={} len={} dt={:.09} s", data.len(), buf.len(), dt);
                       cache.insert(key.to_owned(), (tag, Ok(buf)));
                     }
@@ -198,7 +198,7 @@ pub fn cached<K: AsRef<str>, V: AsRef<str>>(key: K, tag: CacheTag, data: V, mime
                 Ok(buf) => {
                   let t1 = time::get_time_coarse();
                   let dt = (t1 - t0).to_std().unwrap();
-                  let dt = dt.as_secs() as f64 + 1.0e-6 * dt.as_subsec_nanos() as f64;
+                  let dt = dt.as_secs() as f64 + 1.0e-6 * dt.subsec_nanos() as f64;
                   println!("DEBUG:  oc_back: route:   minify js? ok: olen={} len={} dt={:.09} s", data.len(), buf.len(), dt);
                   cache.insert(key.to_owned(), (tag, Ok(buf)));
                 }
