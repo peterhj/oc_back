@@ -219,7 +219,7 @@ pub fn cached<K: AsRef<str>, V: AsRef<str>>(key: K, tag: CacheTag, data: V, mime
         }
         Some((CacheTag::MinifyJs, Ok(minified))) => {
           println!("DEBUG:  oc_back: route:   cache ok: len={}", minified.len());
-          break ok().with_payload_str_mime(minified.to_owned(), mime).into();
+          break ok().with_payload_str_mime(from_utf8(minified).unwrap().to_owned(), mime).into();
         }
       }
       unreachable!();
