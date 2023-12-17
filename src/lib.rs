@@ -1,4 +1,5 @@
 extern crate constant_time_eq;
+extern crate deflate;
 extern crate flate;
 //extern crate minify_js;
 extern crate oc_engine;
@@ -164,6 +165,14 @@ pub fn cached<K: AsRef<str>, V: AsRef<str>>(key: K, tag: CacheTag, data: V, mime
           let t0 = time::get_time_coarse();
           match tag {
             CacheTag::Deflate => {
+              let buf = deflate_bytes(data);
+              let t1 = time::get_time_coarse();
+              let dt = (t1 - t0).to_std().unwrap();
+              let dt = dt.as_secs() as f64 + 1.0e-9 * dt.subsec_nanos() as f64;
+              println!("DEBUG:  oc_back: route:   deflate? ok: olen={} len={} dt={:.09} s", data.len(), buf.len(), dt);
+              cache.insert(key.to_owned(), (tag, Ok(buf)));
+            }
+            /*CacheTag::Deflate => {
               let mut buf = Vec::new();
               let mut enc = DeflateEncoder::new(&mut buf);
               match enc.write_all(data.as_bytes()) {
@@ -188,7 +197,7 @@ pub fn cached<K: AsRef<str>, V: AsRef<str>>(key: K, tag: CacheTag, data: V, mime
                   }
                 }
               }
-            }
+            }*/
             /*CacheTag::MinifyJs => {
               match minify_js::minify_oneshot(data.as_bytes()) {
                 Err(_) => {
