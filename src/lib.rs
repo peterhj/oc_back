@@ -298,9 +298,15 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
       "chat.js" => {
         let template = crate::static_asset::CHAT_JS;
         let rendered = template.replace("{{host}}", &format!("https://zanodu.xyz/olympiadchat/{}", base64::URL_SAFE.encode(&token)));
-        // TODO TODO: minify js.
-        let (data, mime) = (rendered, Mime::ApplicationJavascript);
-        return ok().with_payload_str_mime(data, mime).into();
+        // FIXME: cache key needs to be per-ident.
+        let (tag, data, mime) = (CacheTag::MinifyJs, rendered, Mime::ApplicationJavascript);
+        //return ok().with_payload_str_mime(data, mime).into();
+        match cached(asset, tag, data, mime) {
+          None => {
+            return ok().with_payload_str_mime(data, mime).into();
+          }
+          rep => return rep
+        }
       }
       _ => return None
     };
