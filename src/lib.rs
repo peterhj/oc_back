@@ -299,12 +299,39 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
       "post" => {
         // FIXME: read hreq params.
         //let val = "Let $ABC$ be a triangle.".to_owned();
-        let val = match hreq.params.get("q") {
+        /*let val = match hreq.params.get("q") {
           None => {
             println!("DEBUG:  oc_back: route:   post: no query");
             return None;
           }
           Some(val) => val.to_string()
+        };*/
+        #[derive(RustcDecodable)]
+        struct Payload {
+          q: String,
+        }
+        let val = match hreq.payload.as_ref() {
+          None => {
+            println!("DEBUG:  oc_back: route:   post: no query payload");
+            return None;
+          }
+          Some(payload) => {
+            let s = match from_utf8(payload.as_raw_bytes()) {
+              Err(_) => {
+                println!("DEBUG:  oc_back: route:   post: query payload is not utf-8");
+                return None;
+              }
+              Ok(s) => s
+            };
+            let payload: Payload = match json::decode_from_str(s) {
+              Err(_) => {
+                println!("DEBUG:  oc_back: route:   post: invalid json decode");
+                return None;
+              }
+              Ok(payload) => payload
+            };
+            payload.q
+          }
         };
         let (engine_tx, back_rx) = sync_channel(1);
         match back_tx.send((EngineMsg::EMQ(EngineMatReq{
