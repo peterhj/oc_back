@@ -301,12 +301,7 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
         // FIXME: cache key needs to be per-ident.
         let (tag, data, mime) = (CacheTag::MinifyJs, rendered, Mime::ApplicationJavascript);
         //return ok().with_payload_str_mime(data, mime).into();
-        match cached(asset, tag, data, mime) {
-          None => {
-            return ok().with_payload_str_mime(data, mime).into();
-          }
-          rep => return rep
-        }
+        return cached(asset, tag, data, mime);
       }
       _ => return None
     };
