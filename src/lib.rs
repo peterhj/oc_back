@@ -33,7 +33,6 @@ pub mod secret_asset;
 pub mod static_asset;
 
 pub fn service_main() -> () {
-  let router = Arc::new(routes());
   let host = "127.0.0.1";
   let port_start = 9000;
   let port_fin = 9009;
@@ -53,6 +52,7 @@ pub fn service_main() -> () {
   protect(chroot_dir, 297, 297).unwrap();
   let (back_tx, engine_rx) = sync_channel(8);
   let (engine_tx, back_rx) = sync_channel(8);
+  let router = Arc::new(routes(back_tx, back_rx));
   let _ = spawn(move || {
     'outer: loop {
       let port_start = 10000;
@@ -66,11 +66,11 @@ pub fn service_main() -> () {
         if port >= port_fin {
           match engine_rx.try_recv() {
             Ok(_) => {
-              let _ = engine_tx.send(None);
+              //let _ = engine_tx.send(None);
               loop {
                 match engine_rx.try_recv() {
                   Ok(_) => {
-                    let _ = engine_tx.send(None);
+                    //let _ = engine_tx.send(None);
                   }
                   _ => {
                     break;
@@ -91,8 +91,8 @@ pub fn service_main() -> () {
       loop {
         match engine_rx.recv() {
           Ok(req) => {
-            let rep = match chan.query(&Msg::JSO(req)) {
-              Ok(Msg::JSO(rep)) => Some(rep),
+            let rep = match chan.query(&Msg::Ext(req)) {
+              Ok(Msg::Ext(rep)) => Some(rep),
               _ => break
             };
             match engine_tx.send(rep) {
@@ -136,7 +136,7 @@ thread_local! {
   static TL_CACHE: RefCell<BTreeMap<String, Result<Vec<u8>, ()>>> = RefCell::new(BTreeMap::new());
 }
 
-pub fn routes() -> Router {
+pub fn routes(back_tx: SyncSender<Msg<EngineMsg>>, back_rx: Receiver<Msg<EngineMsg>>) -> Router {
   let mut router = Router::new();
   router.insert_get((), Box::new(move |_, _, _| {
     println!("DEBUG:  oc_back: route: GET /");
@@ -257,6 +257,8 @@ pub fn routes() -> Router {
       }
     })
   }));
+  let back_tx = back_tx.clone();
+  let back_rx = back_rx.clone();
   let tokens0 = &STATIC_ACCESS_TOKENS;
   router.insert_post(("olympiadchat", "{token:base64}", "wapi", "{endpoint}"), Box::new(move |_, args, _| {
     println!("DEBUG:  oc_back: route: POST /olympiadchat/{{token}}/wapi/{{endpoint}}");
@@ -292,12 +294,35 @@ pub fn routes() -> Router {
           }
         }
       }
-      "poll" => {
+      "post" => {
+        // FIXME
+        let val = "Let $ABC$ be a triangle.".to_owned();
+        match back_tx.send(EngineMsg::EMQ(EngineMatReq{
+          val,
+        })) {
+          Err(_) => {
+            return None;
+          }
+          Ok(_) => {}
+        }
         #[derive(RustcEncodable)]
         struct Reply {
-          ready: bool,
+          err: bool,
         };
-        let reply = Reply{ready: false};
+        //let reply = Reply{err: false};
+        let reply = match back_rx.recv() {
+          Err(_) => {
+            return None;
+          }
+          Ok(EngineMsg::EMP(EngineMatRep{
+            res,
+          })) => {
+            Reply{err: res.is_err()}
+          }
+          Ok(_) => {
+            return None;
+          }
+        };
         match json::encode_to_string(&reply) {
           Err(_) => {
             // FIXME: error payload.
@@ -308,12 +333,12 @@ pub fn routes() -> Router {
           }
         }
       }
-      "post" => {
+      "poll" => {
         #[derive(RustcEncodable)]
         struct Reply {
-          err: bool,
+          ready: bool,
         };
-        let reply = Reply{err: false};
+        let reply = Reply{ready: false};
         match json::encode_to_string(&reply) {
           Err(_) => {
             // FIXME: error payload.
