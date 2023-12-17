@@ -23,7 +23,7 @@ time = { path = "../time-0.1" }
 constant_time_eq = { path = "../constant_time_eq" }
 deflate = { path = "../deflate" }
 fdeflate = { path = "../fdeflate" }
-flate = { path = "../flate" }
+#flate = { path = "../flate" }
 getrandom = { path = "../getrandom" }
 #minify_js = { path = "../minify_js" }
 oc_engine = { path = "../oc_engine" }

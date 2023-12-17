@@ -1,6 +1,6 @@
 extern crate constant_time_eq;
 extern crate deflate;
-extern crate flate;
+//extern crate flate;
 //extern crate minify_js;
 extern crate oc_engine;
 extern crate once_cell;
@@ -11,7 +11,7 @@ extern crate time;
 use crate::secret_asset::*;
 
 use constant_time_eq::*;
-use flate::deflate::{Encoder as DeflateEncoder};
+//use flate::deflate::{Encoder as DeflateEncoder};
 use oc_engine::*;
 use rustc_serialize::base64;
 use rustc_serialize::json;
@@ -267,7 +267,9 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
     let rendered = template
                   .replace("{{build}}", &format!("{}.{}", crate::build::date(), crate::build::digest()))
                   .replace("{{host}}", &format!("https://zanodu.xyz/olympiadchat/{}", base64::URL_SAFE.encode(&token)));
-    ok().with_payload_str_mime(rendered, Mime::TextHtml).into()
+    let (data, mime) = (rendered, Mime::TextHtml);
+    println!("DEBUG:  oc_back: route:   ok: len={}", data.len());
+    ok().with_payload_str_mime(data, mime).into()
   }));
   //let tokens0 = static_access_tokens();
   let tokens0 = &STATIC_ACCESS_TOKENS;
@@ -308,6 +310,7 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
         let template = crate::static_asset::CHAT_JS;
         let rendered = template.replace("{{host}}", &format!("https://zanodu.xyz/olympiadchat/{}", base64::URL_SAFE.encode(&token)));
         let (data, mime) = (rendered, Mime::ApplicationJavascript);
+        println!("DEBUG:  oc_back: route:   ok: len={}", data.len());
         return ok().with_payload_str_mime(data, mime).into();
         // FIXME: cache key needs to be per-ident.
         /*let (tag, data, mime) = (CacheTag::MinifyJs, rendered, Mime::ApplicationJavascript);
