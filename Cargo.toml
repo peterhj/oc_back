@@ -25,6 +25,7 @@ deflate = { path = "../deflate" }
 fdeflate = { path = "../fdeflate" }
 flate = { path = "../flate" }
 getrandom = { path = "../getrandom" }
+minify_js = { path = "../minify_js" }
 oc_engine = { path = "../oc_engine" }
 once_cell = { path = "../once_cell" }
 rustc_serialize = { path = "../rustc_serialize" }
