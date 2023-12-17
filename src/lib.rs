@@ -138,7 +138,7 @@ thread_local! {
   static TL_CACHE: RefCell<BTreeMap<String, Result<Vec<u8>, ()>>> = RefCell::new(BTreeMap::new());
 }
 
-pub fn routes(back_tx: SyncSender<EngineMsg>, /*back_rx: Receiver<EngineMsg>*/) -> Router {
+pub fn routes(back_tx: SyncSender<(Engine, MsgReceiver<EngineMsg>)>, /*back_rx: Receiver<EngineMsg>*/) -> Router {
   let mut router = Router::new();
   router.insert_get((), Box::new(move |_, _, _| {
     println!("DEBUG:  oc_back: route: GET /");
