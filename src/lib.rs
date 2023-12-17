@@ -165,7 +165,7 @@ pub fn cached<K: AsRef<str>, V: AsRef<str>>(key: K, tag: CacheTag, data: V, mime
           let t0 = time::get_time_coarse();
           match tag {
             CacheTag::Deflate => {
-              let buf = deflate::deflate_bytes(data);
+              let buf = deflate::deflate_bytes(data.as_bytes());
               let t1 = time::get_time_coarse();
               let dt = (t1 - t0).to_std().unwrap();
               let dt = dt.as_secs() as f64 + 1.0e-9 * dt.subsec_nanos() as f64;
