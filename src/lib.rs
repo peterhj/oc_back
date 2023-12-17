@@ -262,7 +262,7 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
   let back_tx = back_tx.clone();
   //let back_rx = back_rx.clone();
   let tokens0 = &STATIC_ACCESS_TOKENS;
-  router.insert_post(("olympiadchat", "{token:base64}", "wapi", "{endpoint}"), Box::new(move |_, args, _| {
+  router.insert_post(("olympiadchat", "{token:base64}", "wapi", "{endpoint}"), Box::new(move |_, args, hreq| {
     println!("DEBUG:  oc_back: route: POST /olympiadchat/{{token}}/wapi/{{endpoint}}");
     let token = args.get("token")?.as_base64()?;
     let ident = {
@@ -297,13 +297,21 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
         }
       }
       "post" => {
-        // FIXME
-        let val = "Let $ABC$ be a triangle.".to_owned();
+        // FIXME: read hreq params.
+        //let val = "Let $ABC$ be a triangle.".to_owned();
+        let val = match hreq.params.get("q") {
+          None => {
+            println!("DEBUG:  oc_back: route:   post: no query");
+            return None;
+          }
+          Some(val) => val.into()
+        };
         let (engine_tx, back_rx) = sync_channel(1);
         match back_tx.send((EngineMsg::EMQ(EngineMatReq{
           val,
         }), engine_tx)) {
           Err(_) => {
+            println!("DEBUG:  oc_back: route:   post: tx failed");
             return None;
           }
           Ok(_) => {}
@@ -315,14 +323,17 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
         //let reply = Reply{err: false};
         let reply = match back_rx.recv() {
           Err(_) => {
+            println!("DEBUG:  oc_back: route:   post: rx failed");
             return None;
           }
           Ok(EngineMsg::EMP(EngineMatRep{
             res,
           })) => {
+            println!("DEBUG:  oc_back: route:   post: rx ok: res={:?}", res);
             Reply{err: res.is_err()}
           }
           Ok(_) => {
+            println!("DEBUG:  oc_back: route:   post: invalid rx");
             return None;
           }
         };
