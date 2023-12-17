@@ -50,7 +50,7 @@ pub fn service_main() -> () {
   println!("INFO:   listening on {}:{}", host, port);
   let chroot_dir = "/var/lib/oc_back/new_root";
   protect(chroot_dir, 297, 297).unwrap();
-  let (back_tx, engine_rx) = sync_channel::<(EngineMsg, Receiver<EngineMsg>)>(64);
+  let (back_tx, engine_rx) = sync_channel::<(EngineMsg, SyncSender<EngineMsg>)>(64);
   /*let (engine_tx, back_rx) = sync_channel(8);
   let router = Arc::new(routes(back_tx, back_rx));*/
   let router = Arc::new(routes(back_tx));
@@ -138,7 +138,7 @@ thread_local! {
   static TL_CACHE: RefCell<BTreeMap<String, Result<Vec<u8>, ()>>> = RefCell::new(BTreeMap::new());
 }
 
-pub fn routes(back_tx: SyncSender<(Engine, MsgReceiver<EngineMsg>)>, /*back_rx: Receiver<EngineMsg>*/) -> Router {
+pub fn routes(back_tx: SyncSender<(Engine, SyncSender<EngineMsg>)>, /*back_rx: Receiver<EngineMsg>*/) -> Router {
   let mut router = Router::new();
   router.insert_get((), Box::new(move |_, _, _| {
     println!("DEBUG:  oc_back: route: GET /");
