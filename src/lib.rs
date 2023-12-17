@@ -5,6 +5,7 @@ extern crate oc_engine;
 extern crate once_cell;
 extern crate rustc_serialize;
 extern crate service_base;
+extern crate time;
 
 use crate::secret_asset::*;
 
@@ -160,6 +161,7 @@ pub fn cached<K: AsRef<str>, V: AsRef<str>>(key: K, tag: CacheTag, data: V, mime
       match cache.get(key) {
         None => {
           assert!(!retry);
+          let t0 = time::get_time_coarse();
           match tag {
             CacheTag::Deflate => {
               let mut buf = Vec::new();
@@ -177,7 +179,10 @@ pub fn cached<K: AsRef<str>, V: AsRef<str>>(key: K, tag: CacheTag, data: V, mime
                       cache.insert(key.to_owned(), (tag, Err(())));
                     }
                     Ok(_) => {
-                      println!("DEBUG:  oc_back: route:   deflate? ok: olen={} len={}", data.len(), buf.len());
+                      let t1 = time::get_time_coarse();
+                      let dt = (t1 - t0).to_std().unwrap();
+                      let dt = dt.as_secs() as f64 + 1.0e-6 * dt.as_subsec_nanos() as f64;
+                      println!("DEBUG:  oc_back: route:   deflate? ok: olen={} len={} dt={:.09} s", data.len(), buf.len(), dt);
                       cache.insert(key.to_owned(), (tag, Ok(buf)));
                     }
                   }
@@ -185,8 +190,19 @@ pub fn cached<K: AsRef<str>, V: AsRef<str>>(key: K, tag: CacheTag, data: V, mime
               }
             }
             CacheTag::MinifyJs => {
-              // TODO TODO
-              unimplemented!();
+              match minify_js::minify_oneshot(data.as_bytes()) {
+                Err(_) => {
+                  println!("DEBUG:  oc_back: route:   minify js? err");
+                  cache.insert(key.to_owned(), (tag, Err(())));
+                }
+                Ok(buf) => {
+                  let t1 = time::get_time_coarse();
+                  let dt = (t1 - t0).to_std().unwrap();
+                  let dt = dt.as_secs() as f64 + 1.0e-6 * dt.as_subsec_nanos() as f64;
+                  println!("DEBUG:  oc_back: route:   minify js? ok: olen={} len={} dt={:.09} s", data.len(), buf.len(), dt);
+                  cache.insert(key.to_owned(), (tag, Ok(buf)));
+                }
+              }
             }
           }
           retry = true;
@@ -201,9 +217,9 @@ pub fn cached<K: AsRef<str>, V: AsRef<str>>(key: K, tag: CacheTag, data: V, mime
           // FIXME: preserve utf-8 charset.
           break ok().with_payload_bin_mime_encoding(compressed.to_owned(), mime, HttpEncoding::Deflate).into();
         }
-        Some((CacheTag::MinifyJs, Ok(_))) => {
-          // TODO TODO
-          unimplemented!();
+        Some((CacheTag::MinifyJs, Ok(minified))) => {
+          println!("DEBUG:  oc_back: route:   cache ok: len={}", minified.len());
+          break ok().with_payload_str_mime(minified.to_owned(), mime).into();
         }
       }
       unreachable!();
