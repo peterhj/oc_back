@@ -92,7 +92,7 @@ pub fn service_main() -> () {
         match engine_rx.recv() {
           Ok(req) => {
             let rep = match chan.query(&Msg::Ext(req)) {
-              Ok(Msg::Ext(rep)) => Some(rep),
+              Ok(Msg::Ext(rep)) => rep,
               _ => break
             };
             match engine_tx.send(rep) {
