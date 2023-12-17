@@ -150,7 +150,8 @@ pub enum CacheTag {
   MinifyJs,
 }
 
-pub fn cached<V: AsRef<str>>(key: &'static str, tag: CacheTag, data: V, mime: Mime) -> Option<HttpResponse> {
+pub fn cached<K: AsRef<str>, V: AsRef<str>>(key: K, tag: CacheTag, data: V, mime: Mime) -> Option<HttpResponse> {
+  let key = key.as_ref();
   let data = data.as_ref();
   TL_CACHE.with(move |cache| {
     let mut retry = false;
