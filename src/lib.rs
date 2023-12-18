@@ -396,6 +396,7 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
         #[derive(RustcDecodable)]
         struct Payload {
           q: String,
+          seq_nr: i64,
         }
         let val = match hreq.payload.as_ref() {
           None => {
