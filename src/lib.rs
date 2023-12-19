@@ -172,7 +172,7 @@ thread_local! {
 }
 
 #[derive(Clone, Copy, Debug)]
-#[repr(u8)]
+//#[repr(u8)]
 pub enum CacheTag {
   Deflate,
   //MinifyJs,
@@ -188,14 +188,14 @@ pub fn cached<K: AsRef<str>, V: AsRef<str>>(key: K, tag: CacheTag, data: V, mime
       match cache.get(key) {
         None => {
           assert!(!retry);
-          let t0 = time::get_time_coarse();
+          let t0 = time::get_time();
           match tag {
             CacheTag::Deflate => {
               let buf = deflate::deflate_bytes(data.as_bytes());
-              let t1 = time::get_time_coarse();
+              let t1 = time::get_time();
               let dt = (t1 - t0).to_std().unwrap();
               let dt = dt.as_secs() as f64 + 1.0e-9 * dt.subsec_nanos() as f64;
-              println!("DEBUG:  oc_back: route:   deflate? ok: olen={} len={} dt={:.09} s", data.len(), buf.len(), dt);
+              println!("DEBUG:  oc_back: route:   deflate? ok: olen={} len={} dt={:.03} s", data.len(), buf.len(), dt);
               cache.insert(key.to_owned(), (tag, Ok(buf)));
             }
             /*CacheTag::Deflate => {
@@ -214,10 +214,10 @@ pub fn cached<K: AsRef<str>, V: AsRef<str>>(key: K, tag: CacheTag, data: V, mime
                       cache.insert(key.to_owned(), (tag, Err(())));
                     }
                     Ok(_) => {
-                      let t1 = time::get_time_coarse();
+                      let t1 = time::get_time();
                       let dt = (t1 - t0).to_std().unwrap();
                       let dt = dt.as_secs() as f64 + 1.0e-9 * dt.subsec_nanos() as f64;
-                      println!("DEBUG:  oc_back: route:   deflate? ok: olen={} len={} dt={:.09} s", data.len(), buf.len(), dt);
+                      println!("DEBUG:  oc_back: route:   deflate? ok: olen={} len={} dt={:.03} s", data.len(), buf.len(), dt);
                       cache.insert(key.to_owned(), (tag, Ok(buf)));
                     }
                   }
@@ -231,10 +231,10 @@ pub fn cached<K: AsRef<str>, V: AsRef<str>>(key: K, tag: CacheTag, data: V, mime
                   cache.insert(key.to_owned(), (tag, Err(())));
                 }
                 Ok(buf) => {
-                  let t1 = time::get_time_coarse();
+                  let t1 = time::get_time();
                   let dt = (t1 - t0).to_std().unwrap();
                   let dt = dt.as_secs() as f64 + 1.0e-9 * dt.subsec_nanos() as f64;
-                  println!("DEBUG:  oc_back: route:   minify js? ok: olen={} len={} dt={:.09} s", data.len(), buf.len(), dt);
+                  println!("DEBUG:  oc_back: route:   minify js? ok: olen={} len={} dt={:.03} s", data.len(), buf.len(), dt);
                   cache.insert(key.to_owned(), (tag, Ok(buf)));
                 }
               }
