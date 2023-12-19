@@ -434,6 +434,8 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
         #[derive(RustcEncodable)]
         struct Reply {
           err: bool,
+          mrk_s: Option<i32>,
+          mrk_e: Option<i32>,
         };
         //let reply = Reply{err: false};
         let reply = match back_rx.recv() {
@@ -443,9 +445,11 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
           }
           Ok(EngineMsg::EMP(EngineMatRep{
             res,
+            mrk_s,
+            mrk_e,
           })) => {
             println!("DEBUG:  oc_back: route:   post: rx ok: res={:?}", res);
-            Reply{err: res.is_err()}
+            Reply{err: res.is_err(), mrk_s, mrk_e}
           }
           Ok(_) => {
             println!("DEBUG:  oc_back: route:   post: invalid rx");
