@@ -436,6 +436,7 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
           err: bool,
           mrk_s: Option<i32>,
           mrk_e: Option<i32>,
+          val: Vec<String>,
         };
         //let reply = Reply{err: false};
         let reply = match back_rx.recv() {
@@ -447,9 +448,10 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
             res,
             mrk_s,
             mrk_e,
+            val,
           })) => {
             println!("DEBUG:  oc_back: route:   post: rx ok: res={:?}", res);
-            Reply{err: res.is_err(), mrk_s, mrk_e}
+            Reply{err: res.is_err(), mrk_s, mrk_e, val}
           }
           Ok(_) => {
             println!("DEBUG:  oc_back: route:   post: invalid rx");
