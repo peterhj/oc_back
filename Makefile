@@ -8,7 +8,7 @@ test:
 	$(CARGO) test --lib --bins
 
 debug:
-	$(CARGO) build --lib --examples --bins
+	$(CARGO) build --lib --bins --examples
 	mkdir -p debug_dist
 	cp -p target/debug/oc_back_service debug_dist/
 	strip debug_dist/oc_back_service
@@ -18,7 +18,7 @@ debug:
 rel: release
 
 release:
-	$(CARGO) build --release --lib --examples --bins
+	$(CARGO) build --release --lib --bins --examples
 	mkdir -p dist
 	cp -p target/release/oc_back_service dist/
 	strip dist/oc_back_service

@@ -249,8 +249,7 @@ pub fn cached<K: AsRef<str>, V: AsRef<str>>(key: K, tag: CacheTag, data: V, mime
         }
         Some((CacheTag::Deflate, Ok(compressed))) => {
           println!("DEBUG:  oc_back: route:   cache ok: len={}", compressed.len());
-          // FIXME: preserve utf-8 charset.
-          break ok().with_payload_bin_mime_encoding(compressed.to_owned(), mime, HttpEncoding::Deflate).into();
+          break ok().with_payload_bin(compressed.to_owned(), mime, HttpCharset::Utf8, HttpEncoding::Deflate).into();
         }
         /*Some((CacheTag::MinifyJs, Ok(minified))) => {
           println!("DEBUG:  oc_back: route:   cache ok: len={}", minified.len());
