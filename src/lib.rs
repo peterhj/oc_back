@@ -37,6 +37,7 @@ pub mod secret_asset;
 pub mod static_asset;
 
 pub fn service_main() -> () {
+  println!("INFO:   build: {}.{}", crate::build::timestamp(), crate::build::digest2());
   let host = "127.0.0.1";
   let port_start = 9000;
   let port_fin = 9009;
@@ -433,10 +434,12 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
         #[derive(RustcEncodable)]
         struct Reply {
           err: bool,
+          //res: i8,
           mrk_s: Option<i32>,
           mrk_e: Option<i32>,
           val: Vec<String>,
           wip: bool,
+          //wip: i8,
         };
         //let reply = Reply{err: false};
         let reply = match back_rx.recv() {

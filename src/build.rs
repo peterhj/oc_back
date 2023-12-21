@@ -9,9 +9,20 @@ pub fn date() -> &'static str {
   TIMESTAMP.get( .. 10).unwrap()
 }
 
+pub fn timestamp() -> &'static str {
+  TIMESTAMP
+}
+
 pub fn digest() -> String {
   format!("{}-{}",
       GIT_COMMIT_HASH.get( .. 4).unwrap(),
       FRONT_GIT_COMMIT_HASH.get( .. 4).unwrap(),
+  )
+}
+
+pub fn digest2() -> String {
+  format!("{}-{}",
+      GIT_COMMIT_HASH.get( .. 8).unwrap(),
+      FRONT_GIT_COMMIT_HASH.get( .. 8).unwrap(),
   )
 }
