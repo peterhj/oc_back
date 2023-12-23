@@ -433,15 +433,14 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
         }
         #[derive(RustcEncodable)]
         struct Reply {
-          err: bool,
-          //res: i8,
+          //err: bool,
+          err: i8,
           mrk_s: Option<i32>,
           mrk_e: Option<i32>,
           val: Vec<String>,
-          wip: bool,
-          //wip: i8,
+          //wip: bool,
+          wip: i8,
         };
-        //let reply = Reply{err: false};
         let reply = match back_rx.recv() {
           Err(_) => {
             println!("DEBUG:  oc_back: route:   post: rx failed");
@@ -455,7 +454,12 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
             wip,
           })) => {
             println!("DEBUG:  oc_back: route:   post: rx ok: res={:?}", res);
-            Reply{err: res.is_err(), mrk_s, mrk_e, val, wip}
+            let err = match res {
+              Err(e) => e as i8,
+              Ok(_) => 0
+            };
+            let wip = if wip { 1 } else { 0 };
+            Reply{err, mrk_s, mrk_e, val, wip}
           }
           Ok(_) => {
             println!("DEBUG:  oc_back: route:   post: invalid rx");
