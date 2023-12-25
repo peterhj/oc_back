@@ -376,9 +376,11 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
         match json::encode_to_string(&reply) {
           Err(_) => {
             // FIXME: error payload.
+            println!("DEBUG:  oc_back: route:   hi: err");
             return None;
           }
           Ok(data) => {
+            println!("DEBUG:  oc_back: route:   hi: ok");
             return created().with_payload_str_mime(data, Mime::ApplicationJson.into()).into();
           }
         }
@@ -469,9 +471,11 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
         match json::encode_to_string(&reply) {
           Err(_) => {
             // FIXME: error payload.
+            println!("DEBUG:  oc_back: route:   post: err");
             return None;
           }
           Ok(data) => {
+            println!("DEBUG:  oc_back: route:   post: ok");
             return created().with_payload_str_mime(data, Mime::ApplicationJson.into()).into();
           }
         }
