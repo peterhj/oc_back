@@ -456,10 +456,7 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
             wip,
           })) => {
             println!("DEBUG:  oc_back: route:   post: rx ok: res={:?}", res);
-            let err = match res {
-              Err(e) => e as i8,
-              Ok(_) => 0
-            };
+            let err = res as i8;
             let wip = if wip { 1 } else { 0 };
             Reply{err, mrk_s, mrk_e, val, wip}
           }
