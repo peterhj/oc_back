@@ -333,7 +333,8 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
         (CacheTag::Deflate, crate::static_asset::AUTO_RENDER_MIN_JS, Mime::ApplicationJavascript)
       }
       "chat.js" => {
-        let template = crate::static_asset::CHAT_JS;
+        /*let template = crate::static_asset::CHAT_JS;*/
+        let template = crate::gen_asset::CHAT_MIN_JS;
         let rendered = template.replace("{{host}}", &format!("https://zanodu.xyz/olympiadchat/{}", base64::URL_SAFE.encode(&token)));
         let (data, mime) = (rendered, Mime::ApplicationJavascript);
         println!("DEBUG:  oc_back: route:   ok: len={}", data.len());
