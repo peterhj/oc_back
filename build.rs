@@ -4,7 +4,7 @@ extern crate time;
 use time::{now_utc};
 
 use std::fs::{File, OpenOptions};
-use std::io::{BufRead, Write, Cursor};
+use std::io::{BufRead, BufReader, Read, Write, Cursor};
 use std::path::{PathBuf};
 use std::process::{Command};
 use std::str::{from_utf8};
