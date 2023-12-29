@@ -323,7 +323,8 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
       "katex.min.css" => {
         (CacheTag::Deflate, crate::static_asset::KATEX_MIN_CSS, Mime::TextCss)
       }
-      "style.css" => {
+      "style.css" |
+      "style.min.css" => {
         (CacheTag::Deflate, crate::static_asset::STYLE_CSS, Mime::TextCss)
       }
       "katex.min.js" => {
@@ -332,7 +333,8 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
       "auto-render.min.js" => {
         (CacheTag::Deflate, crate::static_asset::AUTO_RENDER_MIN_JS, Mime::ApplicationJavascript)
       }
-      "chat.js" => {
+      "chat.js" |
+      "chat.min.js" => {
         /*let template = crate::static_asset::CHAT_JS;*/
         let template = crate::gen_asset::CHAT_MIN_JS;
         let rendered = template.replace("{{host}}", &format!("https://zanodu.xyz/olympiadchat/{}", base64::URL_SAFE.encode(&token)));
