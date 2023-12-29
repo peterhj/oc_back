@@ -3,11 +3,10 @@ extern crate time;
 
 use time::{now_utc};
 
-use std::fs::{File, OpenOptions};
-use std::io::{BufRead, BufReader, Read, Write, Cursor};
+use std::fs::{OpenOptions};
+use std::io::{Write, Cursor};
 use std::path::{PathBuf};
 use std::process::{Command};
-use std::str::{from_utf8};
 
 fn main() {
   let t = now_utc();
@@ -39,12 +38,7 @@ fn main() {
   let mut gch_f = OpenOptions::new().write(true).create(true).truncate(true)
     .open(out_dir.join("front_git_commit_hash")).unwrap();
   write!(&mut gch_f, "{}", line).unwrap();
-  let file = File::open("../oc_front/chat.js").unwrap();
-  let mut reader = BufReader::new(file);
-  let mut buf = Vec::new();
-  reader.read_to_end(&mut buf).unwrap();
-  let src = from_utf8(&buf).unwrap();
-  let src_min = jest::mangle_js(src, &["renderMathInElement"]).unwrap();
+  let src_min = jest::mangle_js_file("../oc_front/chat.js", &["renderMathInElement"]).unwrap();
   let mut src_min_f = OpenOptions::new().write(true).create(true).truncate(true)
     .open(out_dir.join("chat.min.js")).unwrap();
   write!(&mut src_min_f, "{}", src_min).unwrap();
