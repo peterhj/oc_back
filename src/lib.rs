@@ -25,7 +25,7 @@ use time::{get_time_usec};
 use std::cell::{RefCell};
 use std::collections::{BTreeMap};
 use std::convert::{TryInto};
-use std::fs::{File, OpenOptions};
+use std::fs::{File, OpenOptions, create_dir_all};
 use std::io::{Write};
 use std::net::{TcpListener, TcpStream};
 use std::str::{from_utf8};
@@ -131,9 +131,6 @@ pub fn service_main() -> () {
       loop {
         match engine_rx.recv() {
           Ok((req, engine_tx)) => {
-            if let Some(mut f) = DATA_LOCK.lock().unwrap().as_mut() {
-              writeln!(&mut f, "{}", json::encode_to_string(&row).unwrap()).unwrap();
-            }
             let req = Msg::Ext(req);
             let rep = match chan.query(&req) {
               Ok(Msg::Ext(rep)) => rep,
@@ -390,8 +387,8 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
       "hi" => {
         #[derive(RustcEncodable)]
         struct QRow {
-          t0: SmolStr,
-          req: SmolStr,
+          t0: String,
+          req: String,
           //seq_nr: i64,
         }
         #[derive(RustcEncodable)]
@@ -422,10 +419,10 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
       "post" => {
         #[derive(RustcEncodable)]
         struct QRow {
-          t0: SmolStr,
-          req: SmolStr,
+          t0: String,
+          req: String,
           seq_nr: i64,
-          val: SmolStr,
+          val: String,
         }
         #[derive(RustcDecodable)]
         struct Payload {
@@ -477,8 +474,8 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
         }
         #[derive(RustcEncodable)]
         struct PRow {
-          t0: SmolStr,
-          rep: SmolStr,
+          t0: String,
+          rep: String,
           seq_nr: i64,
           res: i8,
         }
