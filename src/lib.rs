@@ -521,7 +521,7 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
               ident: ident.clone(),
               seq_nr,
               res: err,
-              svg,
+              svg: svg.clone(),
             };
             if let Some(mut f) = DATA_LOCK.lock().unwrap().as_mut() {
               writeln!(&mut f, "{}", json::encode_to_string(&row).unwrap()).unwrap();
