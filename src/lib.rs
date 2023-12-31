@@ -457,7 +457,7 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
           t0: format!("{}", t0.utc().rfc3339_nsec()).into(),
           req: "post".into(),
           seq_nr,
-          val,
+          val: val.clone(),
         };
         if let Some(mut f) = DATA_LOCK.lock().unwrap().as_mut() {
           writeln!(&mut f, "{}", json::encode_to_string(&row).unwrap()).unwrap();
