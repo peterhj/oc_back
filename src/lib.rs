@@ -389,6 +389,7 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
         struct QRow {
           t0: String,
           req: String,
+          ident: String,
           //seq_nr: i64,
         }
         #[derive(RustcEncodable)]
@@ -398,6 +399,7 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
         let row = QRow{
           t0: format!("{}", t0.utc().rfc3339_nsec()).into(),
           req: "hi".into(),
+          ident: ident.clone(),
           //seq_nr,
         };
         if let Some(mut f) = DATA_LOCK.lock().unwrap().as_mut() {
@@ -421,6 +423,7 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
         struct QRow {
           t0: String,
           req: String,
+          ident: String,
           seq_nr: i64,
           val: String,
         }
@@ -456,6 +459,7 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
         let row = QRow{
           t0: format!("{}", t0.utc().rfc3339_nsec()).into(),
           req: "post".into(),
+          ident: ident.clone(),
           seq_nr,
           val: val.clone(),
         };
@@ -476,6 +480,7 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
         struct PRow {
           t0: String,
           rep: String,
+          ident: String,
           seq_nr: i64,
           res: i8,
         }
@@ -508,6 +513,7 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
             let row = PRow{
               t0: format!("{}", t0.utc().rfc3339_nsec()).into(),
               rep: "post".into(),
+              ident: ident.clone(),
               seq_nr,
               res: err,
             };
