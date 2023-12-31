@@ -13,20 +13,23 @@ use crate::secret_asset::*;
 use constant_time_eq::*;
 //use flate::deflate::{Encoder as DeflateEncoder};
 use oc_engine::*;
+use once_cell::sync::{Lazy};
 use rustc_serialize::base64;
 use rustc_serialize::json;
 use service_base::prelude::*;
 use service_base::chan::*;
 use service_base::daemon::{protect};
 use service_base::route::*;
+use time::{get_time_usec};
 
 use std::cell::{RefCell};
 use std::collections::{BTreeMap};
 use std::convert::{TryInto};
+use std::fs::{File, OpenOptions};
 use std::io::{Write};
 use std::net::{TcpListener, TcpStream};
 use std::str::{from_utf8};
-use std::sync::{Arc};
+use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{SyncSender, Receiver, sync_channel};
 use std::thread::{sleep, spawn};
 use std::time::{Duration};
@@ -35,6 +38,8 @@ pub mod build;
 pub mod gen_asset;
 pub mod secret_asset;
 pub mod static_asset;
+
+static DATA_LOCK: Lazy<Mutex<Option<File>>> = Lazy::new(|| Mutex::new(None));
 
 pub fn service_main() -> () {
   println!("INFO:   build: {}.{}", crate::build::timestamp(), crate::build::digest2());
@@ -55,6 +60,14 @@ pub fn service_main() -> () {
   println!("INFO:   listening on {}:{}", host, port);
   let chroot_dir = "/var/lib/oc_back/new_root";
   protect(chroot_dir, 297, 297).unwrap();
+  // NB: mkdir /var out-of-band (need to be root).
+  let _ = create_dir_all("/var/db").ok();
+  {
+    let mut f = OpenOptions::new()
+      .create(true).write(true).append(true).truncate(false)
+      .open("/var/db/data.jsonl").unwrap();
+    *DATA_LOCK.lock().unwrap() = Some(f);
+  }
   let (back_tx, engine_rx) = sync_channel::<(EngineMsg, SyncSender<EngineMsg>)>(64);
   /*let (engine_tx, back_rx) = sync_channel(8);
   let router = Arc::new(routes(back_tx, back_rx));*/
@@ -118,6 +131,9 @@ pub fn service_main() -> () {
       loop {
         match engine_rx.recv() {
           Ok((req, engine_tx)) => {
+            if let Some(mut f) = DATA_LOCK.lock().unwrap().as_mut() {
+              writeln!(&mut f, "{}", json::encode_to_string(&row).unwrap()).unwrap();
+            }
             let req = Msg::Ext(req);
             let rep = match chan.query(&req) {
               Ok(Msg::Ext(rep)) => rep,
@@ -189,11 +205,11 @@ pub fn cached<K: AsRef<str>, V: AsRef<str>>(key: K, tag: CacheTag, data: V, mime
       match cache.get(key) {
         None => {
           assert!(!retry);
-          let t0 = time::get_time();
+          let t0 = get_time_usec();
           match tag {
             CacheTag::Deflate => {
               let buf = deflate::deflate_bytes(data.as_bytes());
-              let t1 = time::get_time();
+              let t1 = get_time_usec();
               let dt = (t1 - t0).to_std().unwrap();
               let dt = dt.as_secs() as f64 + 1.0e-9 * dt.subsec_nanos() as f64;
               println!("DEBUG:  oc_back: route:   deflate? ok: olen={} len={} dt={:.03} s", data.len(), buf.len(), dt);
@@ -215,7 +231,7 @@ pub fn cached<K: AsRef<str>, V: AsRef<str>>(key: K, tag: CacheTag, data: V, mime
                       cache.insert(key.to_owned(), (tag, Err(())));
                     }
                     Ok(_) => {
-                      let t1 = time::get_time();
+                      let t1 = get_time_usec();
                       let dt = (t1 - t0).to_std().unwrap();
                       let dt = dt.as_secs() as f64 + 1.0e-9 * dt.subsec_nanos() as f64;
                       println!("DEBUG:  oc_back: route:   deflate? ok: olen={} len={} dt={:.03} s", data.len(), buf.len(), dt);
@@ -232,7 +248,7 @@ pub fn cached<K: AsRef<str>, V: AsRef<str>>(key: K, tag: CacheTag, data: V, mime
                   cache.insert(key.to_owned(), (tag, Err(())));
                 }
                 Ok(buf) => {
-                  let t1 = time::get_time();
+                  let t1 = get_time_usec();
                   let dt = (t1 - t0).to_std().unwrap();
                   let dt = dt.as_secs() as f64 + 1.0e-9 * dt.subsec_nanos() as f64;
                   println!("DEBUG:  oc_back: route:   minify js? ok: olen={} len={} dt={:.03} s", data.len(), buf.len(), dt);
@@ -353,6 +369,7 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
   //let back_rx = back_rx.clone();
   let tokens0 = &STATIC_ACCESS_TOKENS;
   router.insert_post(("olympiadchat", "{token:base64}", "wapi", "{endpoint}"), Box::new(move |_, args, hreq| {
+    let t0 = get_time_usec();
     println!("DEBUG:  oc_back: route: POST /olympiadchat/{{token}}/wapi/{{endpoint}}");
     let token = args.get("token")?.as_base64()?;
     let ident = {
@@ -372,9 +389,23 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
     match endpoint {
       "hi" => {
         #[derive(RustcEncodable)]
+        struct QRow {
+          t0: SmolStr,
+          req: SmolStr,
+          //seq_nr: i64,
+        }
+        #[derive(RustcEncodable)]
         struct Reply {
           seq_nr: i64,
         };
+        let row = QRow{
+          t0: format!("{}", t0.rfc3339_nsec()).into(),
+          req: "hi".into(),
+          //seq_nr,
+        };
+        if let Some(mut f) = DATA_LOCK.lock().unwrap().as_mut() {
+          writeln!(&mut f, "{}", json::encode_to_string(&row).unwrap()).unwrap();
+        }
         let reply = Reply{seq_nr: 1};
         match json::encode_to_string(&reply) {
           Err(_) => {
@@ -389,21 +420,19 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
         }
       }
       "post" => {
-        // FIXME: read hreq params.
-        //let val = "Let $ABC$ be a triangle.".to_owned();
-        /*let val = match hreq.params.get("q") {
-          None => {
-            println!("DEBUG:  oc_back: route:   post: no query");
-            return None;
-          }
-          Some(val) => val.to_string()
-        };*/
+        #[derive(RustcEncodable)]
+        struct QRow {
+          t0: SmolStr,
+          req: SmolStr,
+          seq_nr: i64,
+          val: SmolStr,
+        }
         #[derive(RustcDecodable)]
         struct Payload {
           q: String,
           seq_nr: i64,
         }
-        let val = match hreq.payload.as_ref() {
+        let payload: Payload = match hreq.payload.as_ref() {
           None => {
             println!("DEBUG:  oc_back: route:   post: no query payload");
             return None;
@@ -416,16 +445,26 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
               }
               Ok(s) => s
             };
-            let payload: Payload = match json::decode_from_str(s) {
+            match json::decode_from_str(s) {
               Err(_) => {
                 println!("DEBUG:  oc_back: route:   post: invalid json decode");
                 return None;
               }
               Ok(payload) => payload
-            };
-            payload.q
+            }
           }
         };
+        let seq_nr = payload.seq_nr;
+        let val = payload.q;
+        let row = QRow{
+          t0: format!("{}", t0.rfc3339_nsec()).into(),
+          req: "post".into(),
+          seq_nr,
+          val,
+        };
+        if let Some(mut f) = DATA_LOCK.lock().unwrap().as_mut() {
+          writeln!(&mut f, "{}", json::encode_to_string(&row).unwrap()).unwrap();
+        }
         let (engine_tx, back_rx) = sync_channel(1);
         match back_tx.send((EngineMsg::EMQ(EngineMatReq{
           val,
@@ -435,6 +474,13 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
             return None;
           }
           Ok(_) => {}
+        }
+        #[derive(RustcEncodable)]
+        struct PRow {
+          t0: SmolStr,
+          rep: SmolStr,
+          seq_nr: i64,
+          res: i8,
         }
         #[derive(RustcEncodable)]
         struct Reply {
@@ -458,9 +504,19 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
             val,
             wip,
           })) => {
+            let t0 = get_time_usec();
             println!("DEBUG:  oc_back: route:   post: rx ok: res={:?}", res);
             let err = res as i8;
             let wip = if wip { 1 } else { 0 };
+            let row = PRow{
+              t0: format!("{}", t0.rfc3339_nsec()).into(),
+              rep: "post".into(),
+              seq_nr,
+              res: err,
+            };
+            if let Some(mut f) = DATA_LOCK.lock().unwrap().as_mut() {
+              writeln!(&mut f, "{}", json::encode_to_string(&row).unwrap()).unwrap();
+            }
             Reply{err, mrk_s, mrk_e, val, wip}
           }
           Ok(_) => {
