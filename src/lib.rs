@@ -485,6 +485,7 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
           ident: String,
           seq_nr: i64,
           res: i8,
+          svg: Option<String>,
         }
         #[derive(RustcEncodable)]
         struct Reply {
@@ -493,6 +494,7 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
           mrk_s: Option<i32>,
           mrk_e: Option<i32>,
           val: Vec<String>,
+          svg: Option<String>,
           //wip: bool,
           wip: i8,
         };
@@ -506,6 +508,7 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
             mrk_s,
             mrk_e,
             val,
+            svg,
             wip,
           })) => {
             let t0 = get_time_usec();
@@ -518,11 +521,12 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
               ident: ident.clone(),
               seq_nr,
               res: err,
+              svg,
             };
             if let Some(mut f) = DATA_LOCK.lock().unwrap().as_mut() {
               writeln!(&mut f, "{}", json::encode_to_string(&row).unwrap()).unwrap();
             }
-            Reply{err, mrk_s, mrk_e, val, wip}
+            Reply{err, mrk_s, mrk_e, val, svg, wip}
           }
           Ok(_) => {
             println!("DEBUG:  oc_back: route:   post: invalid rx");
