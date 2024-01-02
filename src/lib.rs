@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 
+extern crate aho_corasick;
 extern crate constant_time_eq;
 extern crate deflate;
 //extern crate flate;

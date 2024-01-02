@@ -1,8 +1,8 @@
-extern crate getrandom;
+extern crate rng;
 extern crate rustc_serialize;
 extern crate time;
 
-use getrandom::{getrandom};
+use rng::os::{getrandom};
 use rustc_serialize::base64::{URL_SAFE};
 use time::{now_utc};
 
