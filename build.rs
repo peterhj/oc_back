@@ -51,21 +51,26 @@ fn main() {
   let src_min = deflate::deflate_file_gzip("../oc_front/auto-render.min.js").unwrap();
   let mut src_min_f = OpenOptions::new().write(true).create(true).truncate(true)
     .open(out_dir.join("auto-render.min.js.gz")).unwrap();
-  write!(&mut src_min_f, "{}", src_min).unwrap();
+  src_min_f.write_all(&src_min).unwrap();
+  drop(src_min_f);
   let src_min = deflate::deflate_file_gzip("../oc_front/katex.min.js").unwrap();
   let mut src_min_f = OpenOptions::new().write(true).create(true).truncate(true)
     .open(out_dir.join("katex.min.js.gz")).unwrap();
-  write!(&mut src_min_f, "{}", src_min).unwrap();
+  src_min_f.write_all(&src_min).unwrap();
+  drop(src_min_f);
   let src_min = deflate::deflate_file_gzip("../oc_front/style.css").unwrap();
   let mut src_min_f = OpenOptions::new().write(true).create(true).truncate(true)
     .open(out_dir.join("style.css.gz")).unwrap();
-  write!(&mut src_min_f, "{}", src_min).unwrap();
+  src_min_f.write_all(&src_min).unwrap();
+  drop(src_min_f);
   let src_min = deflate::deflate_file_gzip("../oc_front/katex.min.css").unwrap();
   let mut src_min_f = OpenOptions::new().write(true).create(true).truncate(true)
     .open(out_dir.join("katex.min.css.gz")).unwrap();
-  write!(&mut src_min_f, "{}", src_min).unwrap();
+  src_min_f.write_all(&src_min).unwrap();
+  drop(src_min_f);
   let src_min = deflate::deflate_file_gzip("../oc_front/tachyons.min.css").unwrap();
   let mut src_min_f = OpenOptions::new().write(true).create(true).truncate(true)
     .open(out_dir.join("tachyons.min.css.gz")).unwrap();
-  write!(&mut src_min_f, "{}", src_min).unwrap();
+  src_min_f.write_all(&src_min).unwrap();
+  drop(src_min_f);
 }
