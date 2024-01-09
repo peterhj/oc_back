@@ -102,6 +102,7 @@ pub fn service_main() -> () {
         }*/
         _ => {
           println!("DEBUG:  engine:   init: immediately failed");
+          println!("INFO:   engine: disconnected");
           continue 'outer;
         }
       }
@@ -125,6 +126,7 @@ pub fn service_main() -> () {
                 _ => unreachable!()
               };
               retry = Some((t0, req, engine_tx));
+              println!("INFO:   engine: disconnected");
               continue 'outer;
             }
           };
@@ -155,7 +157,8 @@ pub fn service_main() -> () {
                   _ => unreachable!()
                 };
                 retry = Some((t0, req, engine_tx));
-                break;
+                println!("INFO:   engine: disconnected");
+                continue 'outer;
               }
             };
             match engine_tx.send(rep) {
@@ -167,7 +170,7 @@ pub fn service_main() -> () {
           }
         }
       }
-      println!("INFO:   engine: disconnected");
+      unreachable!();
     }
     println!("INFO:   engine: end");
   });
