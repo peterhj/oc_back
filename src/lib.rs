@@ -27,7 +27,7 @@ use service_base::route::*;
 use service_base::signal::{signals};
 use service_base::state::{ServiceState};
 use sh_args::{Arg, Args};
-use time::{Duration, Timespec, get_time_usec};
+use time::{Duration, Timespec, get_time_coarse, get_time_usec};
 
 use std::cell::{RefCell};
 use std::collections::{BTreeMap};
@@ -131,7 +131,7 @@ pub fn service_main() -> () {
       }
       if retry.is_some() {
         // FIXME: soft real-time.
-        let t = get_time_usec();
+        let t = get_time_coarse();
         for (t0, req, engine_tx) in retry.take().into_iter() {
           if (t - t0) >= Duration::seconds(2) {
             continue;
@@ -163,7 +163,7 @@ pub fn service_main() -> () {
         match engine_rx.recv() {
           Ok((t0, req, engine_tx)) => {
             // FIXME: soft real-time.
-            let t = get_time_usec();
+            let t = get_time_coarse();
             if (t - t0) >= Duration::seconds(2) {
               continue;
             }
