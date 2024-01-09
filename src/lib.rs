@@ -108,7 +108,7 @@ pub fn service_main() -> () {
       if retry.is_some() {
         // FIXME: soft real-time.
         let t = get_time_usec();
-        for (t0, req, engine_tx) in retry.drain(..) {
+        for (t0, req, engine_tx) in retry.take().into_iter() {
           if (t - t0) >= Duration::seconds(2) {
             continue;
           }
