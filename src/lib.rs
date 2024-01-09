@@ -9,6 +9,7 @@ extern crate oc_engine;
 extern crate once_cell;
 extern crate rustc_serialize;
 extern crate service_base;
+extern crate sh_args;
 extern crate time;
 
 use crate::secret_asset::*;
@@ -23,6 +24,9 @@ use service_base::prelude::*;
 use service_base::chan::*;
 use service_base::daemon::{protect};
 use service_base::route::*;
+use service_base::signal::{signals};
+use service_base::state::{ServiceState};
+use sh_args::{Arg, Args};
 use time::{Duration, Timespec, get_time_usec};
 
 use std::cell::{RefCell};
@@ -45,7 +49,26 @@ pub mod static_asset;
 static DATA_LOCK: Lazy<Mutex<Option<File>>> = Lazy::new(|| Mutex::new(None));
 
 pub fn service_main() -> () {
-  println!("INFO:   build: {}.{}", crate::build::timestamp(), crate::build::digest2());
+  println!("INFO:   oc_back::service_main: build: {}.{}", crate::build::timestamp(), crate::build::digest2());
+  let mut svcname: Option<SmolStr> = None;
+  let mut svcport: Option<u16> = None;
+  let mut args: Args<_> = std::env::args().into();
+  for arg in args {
+    match arg {
+      Arg::Option{dashes, key, val} => {
+        match (dashes, key.as_str(), val) {
+          (2, "svcname", Some(val)) => {
+            svcname = Some(val.into());
+          }
+          (2, "svcport", Some(val)) => {
+            svcport = Some(val.parse().unwrap());
+          }
+          _ => {}
+        }
+      }
+      _ => {}
+    }
+  }
   let host = "127.0.0.1";
   let port_start = 9000;
   let port_fin = 9001;
@@ -60,7 +83,7 @@ pub fn service_main() -> () {
     }
     port += 1;
   };
-  println!("INFO:   listening on {}:{}", host, port);
+  println!("INFO:   oc_back::service_main: listening on {}:{}", host, port);
   let chroot_dir = "/var/lib/oc_back/new_root";
   protect(chroot_dir, 297, 297).unwrap();
   // NB: mkdir /var out-of-band (need to be root).

@@ -33,6 +33,7 @@ once_cell = { path = "../once_cell" }
 rng = { path = "../rng" }
 rustc_serialize = { path = "../rustc_serialize" }
 service_base = { path = "../service_base" }
+sh_args = { path = "../sh_args" }
 time = { path = "../time-0.1" }
 
 [[bin]]
