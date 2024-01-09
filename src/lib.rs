@@ -23,7 +23,7 @@ use service_base::prelude::*;
 use service_base::chan::*;
 use service_base::daemon::{protect};
 use service_base::route::*;
-use time::{get_time_usec};
+use time::{Timespec, get_time_usec};
 
 use std::cell::{RefCell};
 use std::collections::{BTreeMap};
@@ -48,7 +48,7 @@ pub fn service_main() -> () {
   println!("INFO:   build: {}.{}", crate::build::timestamp(), crate::build::digest2());
   let host = "127.0.0.1";
   let port_start = 9000;
-  let port_fin = 9009;
+  let port_fin = 9001;
   let mut port = port_start;
   let bind = loop {
     match TcpListener::bind((host, port)) {
@@ -71,15 +71,15 @@ pub fn service_main() -> () {
       .open("/var/db/data.jsonl").unwrap();
     *DATA_LOCK.lock().unwrap() = Some(f);
   }
-  let (back_tx, engine_rx) = sync_channel::<(EngineMsg, SyncSender<EngineMsg>)>(64);
+  let (back_tx, engine_rx) = sync_channel::<(Timespec, EngineMsg, SyncSender<EngineMsg>)>(64);
   /*let (engine_tx, back_rx) = sync_channel(8);
   let router = Arc::new(routes(back_tx, back_rx));*/
   let router = Arc::new(routes(back_tx));
   let _ = spawn(move || {
-    let mut retry: Option<(EngineMsg, SyncSender<EngineMsg>)> = None;
+    let mut retry: Option<(Timespec, EngineMsg, SyncSender<EngineMsg>)> = None;
     'outer: loop {
       let port_start = 10000;
-      let port_fin = 10099;
+      let port_fin = 10001;
       let mut port = port_start;
       let stream = loop {
         match TcpStream::connect(("127.0.0.1", port)) {
@@ -112,7 +112,7 @@ pub fn service_main() -> () {
       };
       println!("INFO:   engine: connected on port={}", port);
       let mut chan = Chan::<EngineMsg>::new(stream);
-      if let Some((req, engine_tx)) = retry.take() {
+      if let Some((t0, req, engine_tx)) = retry.take() {
         let req = Msg::Ext(req);
         let rep = match chan.query(&req) {
           Ok(Msg::Ext(rep)) => rep,
@@ -122,7 +122,7 @@ pub fn service_main() -> () {
               Msg::Ext(req) => req,
               _ => unreachable!()
             };
-            retry = Some((req, engine_tx));
+            retry = Some((t0, req, engine_tx));
             break;
           }
         };
@@ -133,7 +133,9 @@ pub fn service_main() -> () {
       }
       loop {
         match engine_rx.recv() {
-          Ok((req, engine_tx)) => {
+          Ok((t0, req, engine_tx)) => {
+            // FIXME: soft real-time.
+            /*let t = get_time_usec();*/
             let req = Msg::Ext(req);
             let rep = match chan.query(&req) {
               Ok(Msg::Ext(rep)) => rep,
@@ -143,7 +145,7 @@ pub fn service_main() -> () {
                   Msg::Ext(req) => req,
                   _ => unreachable!()
                 };
-                retry = Some((req, engine_tx));
+                retry = Some((t0, req, engine_tx));
                 break;
               }
             };
@@ -476,7 +478,7 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
           writeln!(&mut f, "{}", json::encode_to_string(&row).unwrap()).unwrap();
         }
         let (engine_tx, back_rx) = sync_channel(1);
-        match back_tx.send((EngineMsg::EMQ(EngineMatReq{
+        match back_tx.send((t0, EngineMsg::EMQ(EngineMatReq{
           val,
         }), engine_tx)) {
           Err(_) => {
