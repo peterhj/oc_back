@@ -184,7 +184,7 @@ pub fn service_main() -> () {
   });
 }
 
-thread_local! {
+/*thread_local! {
   static TL_CACHE: RefCell<BTreeMap<String, (CacheTag, Result<Vec<u8>, ()>)>> = RefCell::new(BTreeMap::new());
 }
 
@@ -276,7 +276,7 @@ pub fn cached<K: AsRef<str>, V: AsRef<str>>(key: K, tag: CacheTag, data: V, mime
       unreachable!();
     }
   })
-}
+}*/
 
 pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx: Receiver<EngineMsg>*/) -> Router {
   let mut router = Router::new();
@@ -332,22 +332,27 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
     let asset = args.get("asset")?.as_str()?;
     println!("DEBUG:  oc_back: route:   asset={:?}", asset);
     // FIXME: cache control.
-    let (tag, data, mime) = match asset {
+    let (/*tag,*/ data, mime) = match asset {
       "tachyons.min.css" => {
-        (CacheTag::Deflate, crate::static_asset::TACHYONS_MIN_CSS, Mime::TextCss)
+        //(CacheTag::Deflate, crate::static_asset::TACHYONS_MIN_CSS, Mime::TextCss)
+        (crate::gen_asset::TACHYONS_MIN_CSS_GZ, Mime::TextCss)
       }
       "katex.min.css" => {
-        (CacheTag::Deflate, crate::static_asset::KATEX_MIN_CSS, Mime::TextCss)
+        //(CacheTag::Deflate, crate::static_asset::KATEX_MIN_CSS, Mime::TextCss)
+        (crate::gen_asset::KATEX_MIN_CSS_GZ, Mime::TextCss)
       }
       "style.css" |
       "style.min.css" => {
-        (CacheTag::Deflate, crate::static_asset::STYLE_CSS, Mime::TextCss)
+        //(CacheTag::Deflate, crate::static_asset::STYLE_CSS, Mime::TextCss)
+        (crate::gen_asset::STYLE_CSS_GZ, Mime::TextCss)
       }
       "katex.min.js" => {
-        (CacheTag::Deflate, crate::static_asset::KATEX_MIN_JS, Mime::ApplicationJavascript)
+        //(CacheTag::Deflate, crate::static_asset::KATEX_MIN_JS, Mime::ApplicationJavascript)
+        (crate::gen_asset::KATEX_MIN_JS_GZ, Mime::ApplicationJavascript)
       }
       "auto-render.min.js" => {
-        (CacheTag::Deflate, crate::static_asset::AUTO_RENDER_MIN_JS, Mime::ApplicationJavascript)
+        //(CacheTag::Deflate, crate::static_asset::AUTO_RENDER_MIN_JS, Mime::ApplicationJavascript)
+        (crate::gen_asset::AUTO_RENDER_MIN_JS_GZ, Mime::ApplicationJavascript)
       }
       "chat.js" |
       "chat.min.js" => {
@@ -363,7 +368,8 @@ pub fn routes(back_tx: SyncSender<(EngineMsg, SyncSender<EngineMsg>)>, /*back_rx
       }
       _ => return None
     };
-    cached(asset, tag, data, mime)
+    /*cached(asset, tag, data, mime)*/
+    ok().with_payload_bin(data.to_owned(), mime, HttpCharset::Utf8, HttpEncoding::Gzip).into()
   }));
   let back_tx = back_tx.clone();
   //let back_rx = back_rx.clone();
