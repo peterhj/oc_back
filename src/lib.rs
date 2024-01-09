@@ -23,7 +23,7 @@ use service_base::prelude::*;
 use service_base::chan::*;
 use service_base::daemon::{protect};
 use service_base::route::*;
-use time::{Timespec, get_time_usec};
+use time::{Duration, Timespec, get_time_usec};
 
 use std::cell::{RefCell};
 use std::collections::{BTreeMap};
@@ -35,7 +35,7 @@ use std::str::{from_utf8};
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{SyncSender, Receiver, sync_channel};
 use std::thread::{sleep, spawn};
-use std::time::{Duration};
+use std::time::{Duration as StdDuration};
 
 pub mod build;
 pub mod gen_asset;
@@ -72,73 +72,82 @@ pub fn service_main() -> () {
     *DATA_LOCK.lock().unwrap() = Some(f);
   }
   let (back_tx, engine_rx) = sync_channel::<(Timespec, EngineMsg, SyncSender<EngineMsg>)>(64);
-  /*let (engine_tx, back_rx) = sync_channel(8);
-  let router = Arc::new(routes(back_tx, back_rx));*/
   let router = Arc::new(routes(back_tx));
   let _ = spawn(move || {
+    println!("INFO:   engine: start");
     let mut retry: Option<(Timespec, EngineMsg, SyncSender<EngineMsg>)> = None;
+    //let mut retry: Vec<(Timespec, EngineMsg, SyncSender<EngineMsg>)> = Vec::new();
     'outer: loop {
+      let host = "127.0.0.1";
       let port_start = 10000;
       let port_fin = 10001;
       let mut port = port_start;
       let stream = loop {
-        match TcpStream::connect(("127.0.0.1", port)) {
+        match TcpStream::connect((host, port)) {
           Err(_) => {}
           Ok(stream) => break stream
         }
         if port >= port_fin {
-          let _ = retry.take();
-          match engine_rx.try_recv() {
-            Ok(_) => {
-              //let _ = engine_tx.send(None);
-              loop {
-                match engine_rx.try_recv() {
-                  Ok(_) => {
-                    //let _ = engine_tx.send(None);
-                  }
-                  _ => {
-                    break;
-                  }
-                }
-              }
-            }
-            //Err(TryRecvError::Empty) => {}
-            _ => {}
-          }
-          sleep(Duration::from_secs(1));
+          sleep(StdDuration::from_secs(2));
           continue 'outer;
         }
         port += 1;
       };
-      println!("INFO:   engine: connected on port={}", port);
+      println!("INFO:   engine: connected on {}:{}", host, port);
       let mut chan = Chan::<EngineMsg>::new(stream);
-      if let Some((t0, req, engine_tx)) = retry.take() {
-        let req = Msg::Ext(req);
-        let rep = match chan.query(&req) {
-          Ok(Msg::Ext(rep)) => rep,
-          _ => {
-            println!("DEBUG:  engine:   query: immediately failed");
-            let req = match req {
-              Msg::Ext(req) => req,
-              _ => unreachable!()
-            };
-            retry = Some((t0, req, engine_tx));
-            break;
+      match chan.query(&Msg::OKQ) {
+        Ok(Msg::OKR) => {}
+        /*Ok(Msg::HUP) => {
+          // TODO
+        }*/
+        _ => {
+          println!("DEBUG:  engine:   init: immediately failed");
+          continue 'outer;
+        }
+      }
+      if retry.is_some() {
+        // FIXME: soft real-time.
+        let t = get_time_usec();
+        for (t0, req, engine_tx) in retry.drain(..) {
+          if (t - t0) >= Duration::seconds(2) {
+            continue;
           }
-        };
-        match engine_tx.send(rep) {
-          Ok(_) => {}
-          _ => {}
+          let req = Msg::Ext(req);
+          let rep = match chan.query(&req) {
+            Ok(Msg::Ext(rep)) => rep,
+            /*Ok(Msg::HUP) => {
+              // TODO
+            }*/
+            _ => {
+              println!("DEBUG:  engine:   query: retry failed");
+              let req = match req {
+                Msg::Ext(req) => req,
+                _ => unreachable!()
+              };
+              retry = Some((t0, req, engine_tx));
+              continue 'outer;
+            }
+          };
+          match engine_tx.send(rep) {
+            Ok(_) => {}
+            _ => {}
+          }
         }
       }
       loop {
         match engine_rx.recv() {
           Ok((t0, req, engine_tx)) => {
             // FIXME: soft real-time.
-            /*let t = get_time_usec();*/
+            let t = get_time_usec();
+            if (t - t0) >= Duration::seconds(2) {
+              continue;
+            }
             let req = Msg::Ext(req);
             let rep = match chan.query(&req) {
               Ok(Msg::Ext(rep)) => rep,
+              /*Ok(Msg::HUP) => {
+                // TODO
+              }*/
               _ => {
                 println!("DEBUG:  engine:   query: failed");
                 let req = match req {
@@ -160,6 +169,7 @@ pub fn service_main() -> () {
       }
       println!("INFO:   engine: disconnected");
     }
+    println!("INFO:   engine: end");
   });
   let pool: SpawnPool = SpawnPool::new(bind);
   pool.replying({
@@ -507,7 +517,7 @@ pub fn routes(back_tx: SyncSender<(Timespec, EngineMsg, SyncSender<EngineMsg>)>,
           //wip: bool,
           wip: i8,
         };
-        let reply = match back_rx.recv() {
+        let reply = match back_rx.recv_timeout(StdDuration::from_secs(2)) {
           Err(_) => {
             println!("DEBUG:  oc_back: route:   post: rx failed");
             return None;
