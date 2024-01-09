@@ -4,9 +4,9 @@ pub static AUTO_RENDER_MIN_JS_GZ: &'static [u8] =
     include_bytes!(concat!(env!("OUT_DIR"), "/auto-render.min.js.gz"));
 pub static KATEX_MIN_JS_GZ: &'static [u8] =
     include_bytes!(concat!(env!("OUT_DIR"), "/katex.min.js.gz"));
-pub static CHAT_CSS: &'static [u8] =
-    include_bytes!(concat!(env!("OUT_DIR"), "/chat.css"));
+pub static STYLE_CSS_GZ: &'static [u8] =
+    include_bytes!(concat!(env!("OUT_DIR"), "/style.css.gz"));
 pub static KATEX_MIN_CSS_GZ: &'static [u8] =
-    include_bytes!(concat!(env!("OUT_DIR"), "/katex.min.js.gz"));
+    include_bytes!(concat!(env!("OUT_DIR"), "/katex.min.css.gz"));
 pub static TACHYONS_MIN_CSS_GZ: &'static [u8] =
-    include_bytes!(concat!(env!("OUT_DIR"), "/tachyons.min.js.gz"));
+    include_bytes!(concat!(env!("OUT_DIR"), "/tachyons.min.css.gz"));
