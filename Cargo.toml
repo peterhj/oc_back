@@ -17,6 +17,7 @@ incremental = true
 lto = false
 
 [build-dependencies]
+deflate = { path = "../deflate" }
 jest = { path = "../jest" }
 time = { path = "../time-0.1" }
 
