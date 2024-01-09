@@ -50,7 +50,7 @@ static DATA_LOCK: Lazy<Mutex<Option<File>>> = Lazy::new(|| Mutex::new(None));
 
 pub fn service_main() -> () {
   println!("INFO:   oc_back::service_main: build: {}.{}", crate::build::timestamp(), crate::build::digest2());
-  let mut svcname: Option<SmolStr> = None;
+  let mut svcname: Option<String> = None;
   let mut svcport: Option<u16> = None;
   let mut args: Args<_> = std::env::args().into();
   for arg in args {
