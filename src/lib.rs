@@ -117,6 +117,7 @@ pub fn service_main() -> () {
           Err(_) => {}
           Ok(stream) => break stream
         }
+        println!("DEBUG:  engine:   connect: failed: port={}", port);
         if port >= port_fin {
           port = port_start;
         } else {
