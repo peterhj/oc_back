@@ -98,9 +98,14 @@ pub fn service_main() -> () {
   let router = Arc::new(routes(back_tx));
   let _ = spawn(move || {
     println!("INFO:   engine: start");
+    let mut first = true;
     let mut retry: Option<(Timespec, EngineMsg, SyncSender<EngineMsg>)> = None;
     //let mut retry: Vec<(Timespec, EngineMsg, SyncSender<EngineMsg>)> = Vec::new();
     'outer: loop {
+      if !first {
+        sleep(StdDuration::from_secs(2));
+      }
+      first = false;
       let host = "127.0.0.1";
       let port_start = 10000;
       let port_fin = 10001;
@@ -111,12 +116,10 @@ pub fn service_main() -> () {
           Ok(stream) => break stream
         }
         if port >= port_fin {
-          sleep(StdDuration::from_secs(2));
           continue 'outer;
         }
         port += 1;
       };
-      println!("INFO:   engine: connected on {}:{}", host, port);
       let mut chan = Chan::<EngineMsg>::new(stream);
       match chan.query(&Msg::OKQ) {
         Ok(Msg::OKR) => {}
@@ -124,11 +127,11 @@ pub fn service_main() -> () {
           // TODO
         }*/
         _ => {
-          println!("DEBUG:  engine:   init: immediately failed");
-          println!("INFO:   engine: disconnected");
+          //println!("DEBUG:  engine:   init: immediately failed");
           continue 'outer;
         }
       }
+      println!("INFO:   engine: connected on {}:{}", host, port);
       if retry.is_some() {
         // FIXME: soft real-time.
         let t = get_time_coarse();
