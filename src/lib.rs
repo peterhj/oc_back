@@ -111,19 +111,18 @@ pub fn service_main() -> () {
       if first.take().is_none() {
         sleep(StdDuration::from_secs(2));
       }
-      let stream = loop {
-        let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
-        match TcpStream::connect_timeout(&addr, StdDuration::from_secs(2)) {
-          Err(_) => {}
-          Ok(stream) => break stream
+      let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
+      let stream = match TcpStream::connect_timeout(&addr, StdDuration::from_secs(2)) {
+        Ok(stream) => stream,
+        Err(_) => {
+          //println!("DEBUG:  engine:   connect: failed: port={}", port);
+          if port >= port_fin {
+            port = port_start;
+          } else {
+            port += 1;
+          }
+          continue 'outer;
         }
-        println!("DEBUG:  engine:   connect: failed: port={}", port);
-        if port >= port_fin {
-          port = port_start;
-        } else {
-          port += 1;
-        }
-        continue 'outer;
       };
       let mut chan = Chan::<EngineMsg>::new(stream);
       match chan.query(&Msg::OKQ) {
@@ -132,7 +131,7 @@ pub fn service_main() -> () {
           // TODO
         }*/
         _ => {
-          println!("DEBUG:  engine:   setup: failed: port={}", port);
+          //println!("DEBUG:  engine:   setup: failed: port={}", port);
           if port >= port_fin {
             port = port_start;
           } else {
