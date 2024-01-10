@@ -131,7 +131,12 @@ pub fn service_main() -> () {
           // TODO
         }*/
         _ => {
-          println!("DEBUG:  engine:   setup: immediately failed");
+          println!("DEBUG:  engine:   setup: failed: port={}", port);
+          if port >= port_fin {
+            port = port_start;
+          } else {
+            port += 1;
+          }
           continue 'outer;
         }
       }
@@ -212,7 +217,10 @@ pub fn service_main() -> () {
     let router = router.clone();
     Arc::new(move |query| {
       match query {
-        Msg::OKQ => Msg::OKR,
+        Msg::OKQ => {
+          println!("DEBUG:  gateway: OK => OK");
+          Msg::OKR
+        }
         Msg::H1Q(req) => {
           let port = 443;
           match router.match_(port, &req) {
