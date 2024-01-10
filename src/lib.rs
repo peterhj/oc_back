@@ -34,7 +34,7 @@ use std::collections::{BTreeMap};
 use std::convert::{TryInto};
 use std::fs::{File, OpenOptions, create_dir_all};
 use std::io::{Write};
-use std::net::{TcpListener, TcpStream};
+use std::net::{ToSocketAddrs, TcpListener, TcpStream};
 use std::str::{from_utf8};
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{SyncSender, Receiver, sync_channel};
@@ -49,7 +49,9 @@ pub mod static_asset;
 static DATA_LOCK: Lazy<Mutex<Option<File>>> = Lazy::new(|| Mutex::new(None));
 
 pub fn service_main() -> () {
+  let t0 = get_time_usec();
   println!("INFO:   oc_back::service_main: build: {}.{}", crate::build::timestamp(), crate::build::digest2());
+  println!("INFO:   oc_back::service_main: {}", t0.utc().rfc3339_nsec());
   let mut svcname: Option<String> = None;
   let mut svcport: Option<u16> = None;
   let mut args: Args<_> = std::env::args().into();
@@ -98,27 +100,29 @@ pub fn service_main() -> () {
   let router = Arc::new(routes(back_tx));
   let _ = spawn(move || {
     println!("INFO:   engine: start");
-    let mut first = true;
+    let host = "127.0.0.1";
+    let port_start = 10000;
+    let port_fin = 10001;
+    let mut port = port_start;
     let mut retry: Option<(Timespec, EngineMsg, SyncSender<EngineMsg>)> = None;
     //let mut retry: Vec<(Timespec, EngineMsg, SyncSender<EngineMsg>)> = Vec::new();
+    let mut first = Some(());
     'outer: loop {
-      if !first {
+      if first.take().is_none() {
         sleep(StdDuration::from_secs(2));
       }
-      first = false;
-      let host = "127.0.0.1";
-      let port_start = 10000;
-      let port_fin = 10001;
-      let mut port = port_start;
       let stream = loop {
-        match TcpStream::connect((host, port)) {
+        let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
+        match TcpStream::connect_timeout(&addr, StdDuration::from_secs(2)) {
           Err(_) => {}
           Ok(stream) => break stream
         }
         if port >= port_fin {
-          continue 'outer;
+          port = port_start;
+        } else {
+          port += 1;
         }
-        port += 1;
+        continue 'outer;
       };
       let mut chan = Chan::<EngineMsg>::new(stream);
       match chan.query(&Msg::OKQ) {
@@ -127,7 +131,7 @@ pub fn service_main() -> () {
           // TODO
         }*/
         _ => {
-          //println!("DEBUG:  engine:   init: immediately failed");
+          println!("DEBUG:  engine:   setup: immediately failed");
           continue 'outer;
         }
       }
